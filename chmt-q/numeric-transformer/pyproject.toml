@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "daxalgo-numeric-transformer"
+version = "0.1.0"
+description = "Pro-private CHMT-Q numeric market transformer research implementation"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26,<3",
+    "packaging>=24,<26",
+    "torch>=2.5,<2.6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2,<9",
+    "ruff>=0.5,<1",
+]
+data = [
+    "orjson>=3.10,<4",
+    "pyarrow>=17,<25",
+]
+onnx = [
+    "onnx>=1.17,<2",
+    "onnxruntime>=1.20,<2",
+]
+
+[project.scripts]
+daxalgo-numeric-transformer = "daxalgo_numeric_transformer.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["daxalgo_numeric_transformer*"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+markers = [
+    "onnx: requires the optional ONNX export and runtime dependencies",
+    "data: requires the optional Parquet audit dependency",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["daxalgo_numeric_transformer"]
+

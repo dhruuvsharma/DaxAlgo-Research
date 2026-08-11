@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Training / experiment output. Checkpoints and datasets are large and are not
+# version-controlled here; frozen result sets that back a claim ARE committed
+# (see each programme's README) so published numbers stay reproducible.
+runs/
+checkpoints/
+*.ckpt
+*.pt
+*.pth
+*.onnx
+data/raw/
+data/interim/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vs/
+.idea/

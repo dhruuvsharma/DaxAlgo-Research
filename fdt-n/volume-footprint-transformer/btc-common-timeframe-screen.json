@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "study_id": "fdt-n-tiny-btcusdt-common-timeframe-development-screen",
+  "status": "declared_development_screen_before_variant_training",
+  "development": {
+    "symbol": "BTCUSDT",
+    "source": "Binance Data Vision spot daily individual trades",
+    "data_start_utc": "2024-01-01",
+    "data_end_exclusive_utc": "2024-02-15",
+    "expected_unique_archives": 45,
+    "source_manifests": [
+      {
+        "sha256": "5690f4871245dd0a473af59ad1b1f63796a6f6bbd0806cf7c4b47891f8995345"
+      },
+      {
+        "sha256": "84d2b56f255e9f68236e4a1d05aeb313843d6e204abfa4600c9ef934fffa53e8"
+      }
+    ],
+    "split": {
+      "train_fraction": 0.60,
+      "validation_fraction": 0.15,
+      "reserved_screen_fraction": 0.25,
+      "purge_bars": "lookback_plus_horizon"
+    }
+  },
+  "encoding": {
+    "row_size": 2.5,
+    "max_rows": 4096,
+    "imbalance_ratio": 3.0
+  },
+  "training": {
+    "model_preset": "fdt-n-tiny",
+    "round_one_seeds": [17],
+    "promotion_seeds": [29, 43],
+    "epochs": 30,
+    "patience": 8,
+    "batch_size": 64,
+    "bootstrap_resamples": 500,
+    "selection_partition": "validation_only",
+    "selection_score": "mean final-horizon ridge-relative q50 MAE improvement for POC and delta"
+  },
+  "sample_gate": {
+    "dependence_bars": "max(lookback_plus_horizon, ceil_four_hours_in_bars)",
+    "minimum_train_blocks": 60,
+    "minimum_validation_blocks": 15,
+    "minimum_reserved_screen_blocks": 15,
+    "minimum_continuous_window_fraction": 0.99
+  },
+  "economics": {
+    "position": "spot_long_or_flat",
+    "leverage": 1.0,
+    "execution_latency_ms": 1000,
+    "signal_edge_bps": 24.0,
+    "require_positive_delta": true,
+    "primary_side_cost_bps": 12.0,
+    "stress_side_cost_bps": 17.0,
+    "initial_capital_usd": 10000.0,
+    "minimum_complete_utc_days_before_futility": 10,
+    "minimum_decisions_before_futility": 200,
+    "minimum_closed_trades_before_futility": 30,
+    "futility_net_return": -0.10,
+    "minimum_complete_period_trades": 30,
+    "winner_requires_positive_complete_period_net_return": true,
+    "early_success_stopping": false
+  },
+  "candidates": [
+    {
+      "name": "1m-l64-h8-reference",
+      "priority": 1,
+      "stage": "existing_reference",
+      "interval_seconds": 60,
+      "lookback_bars": 64,
+      "horizon_bars": 8,
+      "physical_context_minutes": 64,
+      "physical_horizon_minutes": 8
+    },
+    {
+      "name": "5m-l48-h6",
+      "priority": 2,
+      "stage": "active_common_pair",
+      "interval_seconds": 300,
+      "lookback_bars": 48,
+      "horizon_bars": 6,
+      "physical_context_minutes": 240,
+      "physical_horizon_minutes": 30
+    },
+    {
+      "name": "15m-l16-h2",
+      "priority": 3,
+      "stage": "active_common_pair",
+      "interval_seconds": 900,
+      "lookback_bars": 16,
+      "horizon_bars": 2,
+      "physical_context_minutes": 240,
+      "physical_horizon_minutes": 30
+    },
+    {
+      "name": "5m-l96-h12",
+      "priority": 4,
+      "stage": "conditional_if_5m_parent_survives",
+      "interval_seconds": 300,
+      "lookback_bars": 96,
+      "horizon_bars": 12,
+      "physical_context_minutes": 480,
+      "physical_horizon_minutes": 60
+    },
+    {
+      "name": "15m-l32-h4",
+      "priority": 5,
+      "stage": "conditional_if_15m_parent_survives",
+      "interval_seconds": 900,
+      "lookback_bars": 32,
+      "horizon_bars": 4,
+      "physical_context_minutes": 480,
+      "physical_horizon_minutes": 60
+    },
+    {
+      "name": "1m-l120-h15",
+      "priority": 6,
+      "stage": "conditional_bridge_only",
+      "interval_seconds": 60,
+      "lookback_bars": 120,
+      "horizon_bars": 15,
+      "physical_context_minutes": 120,
+      "physical_horizon_minutes": 15
+    }
+  ],
+  "deferred": {
+    "one_hour_candidate": {
+      "interval_seconds": 3600,
+      "lookback_bars": 24,
+      "horizon_bars": 4,
+      "reason": "requires at least 134 continuous days under the declared sample floor"
+    }
+  },
+  "confirmation": {
+    "status": "not_downloaded_until_one_winner_is_frozen",
+    "evaluation_start_utc": "2024-02-15",
+    "evaluation_end_exclusive_utc": "2024-03-16",
+    "optional_stopping": false
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "study_id": "fdt-n-tiny-btcusdt-spot-2024-01-15-2024-02-14",
+  "status": "preregistered_before_fresh_holdout_download",
+  "development": {
+    "dataset_sha256": "d83f78894af08b65123d2bf9f4fbef8ca28e901a552d3af2c61f6e37513bf6cc",
+    "manifest_sha256": "b88d89565febb97dbe56151fe447e3952fa844b8c433ecb86cb747e11e4ce412",
+    "first_timestamp_ms": 1704067200000,
+    "last_timestamp_ms": 1705276740000,
+    "calibration": {
+      "evaluation_start_utc": "2024-01-02",
+      "evaluation_end_exclusive_utc": "2024-01-14",
+      "candidate_signal_edge_bps": [0.0, 1.0, 2.0, 3.0, 4.0, 5.0],
+      "minimum_trades": 30,
+      "selection_rule": "highest net return, ties toward lower threshold",
+      "selected_signal_edge_bps": 5.0,
+      "selected_trades": 93,
+      "selected_gross_return": 0.026166549686229557,
+      "selected_net_return": -0.1792231133724954
+    }
+  },
+  "model": {
+    "ensemble": "equal_weight",
+    "members": [
+      {
+        "seed": 17,
+        "checkpoint_sha256": "64f31cd9b5930628e40c7c750170d7c7df5daaf6ad98bdc060920c786cc7ae20",
+        "training_results_sha256": "fc39691e59a4e6bf9c393cb2b8eab9f53efc8fc5fa5cfc9c9ed36a4a4ae4b156"
+      },
+      {
+        "seed": 29,
+        "checkpoint_sha256": "c98e7acac39cf4a0a06987c0b462961e4569862d217fd2755381b9a6ce93a815",
+        "training_results_sha256": "015b53ecc623001f1ba0729cf05245a00f3654b47044b8ad1a542e551d78683b"
+      },
+      {
+        "seed": 43,
+        "checkpoint_sha256": "8c3df68de1ae8633a15539b47f5b32a12a14e268117ebf9e3894ab27347835ad",
+        "training_results_sha256": "f56d1ad99a44f716cde94da14f0e41e15ac82ea327bca5abbad97cb07a9822f8"
+      }
+    ],
+    "ridge_sha256": "49f4e92d0dba5dacf804b08eac4c9011b174e2e6c313df4ed7d6e948676a38aa"
+  },
+  "holdout": {
+    "symbol": "BTCUSDT",
+    "source": "Binance Data Vision spot daily individual trades",
+    "data_start_utc": "2024-01-14",
+    "data_end_utc": "2024-02-14",
+    "evaluation_start_utc": "2024-01-15",
+    "evaluation_end_exclusive_utc": "2024-02-14",
+    "expected_days": 30,
+    "expected_decisions": 5400,
+    "expected_source_archives": 32
+  },
+  "policy": {
+    "horizon_bars": 8,
+    "decision_interval_bars": 8,
+    "execution_latency_ms": 1000,
+    "signal_edge_bps": 5.0,
+    "require_positive_delta": true,
+    "primary_side_cost_bps": 12.0,
+    "stress_side_cost_bps": 17.0,
+    "initial_capital_usd": 10000.0,
+    "position": "spot_long_or_flat",
+    "leverage": 1.0,
+    "consecutive_blocks": "independent_exit_and_reentry"
+  },
+  "statistics": {
+    "daily_sharpe_annualization_days": 365,
+    "risk_free_rate": 0.0,
+    "bootstrap_resamples": 2000,
+    "bootstrap_block_days": 3,
+    "bootstrap_seed": 17,
+    "drawdown_sampling": "block_boundaries"
+  }
+}

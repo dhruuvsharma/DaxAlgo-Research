@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "evidence_origin": "Read-only compiler, split, scaler, and authorized Jun 1-24 corpus audit performed for the CHMT-Q failure analysis.",
+  "quantitative_scope": {
+    "first_day": "2026-06-01",
+    "last_day": "2026-06-24",
+    "sealed_values_used": false
+  },
+  "holdout_integrity_disclosure": {
+    "status": "inadvertently_read_not_used",
+    "operationally_pristine": false,
+    "detail": "An early schema/count projection traversed all 42,930 Arrow rows and physically read projected target fields in the Jun 25-30 shards. No sealed values were printed, retained, analyzed, or used. The period must nevertheless be treated as process-accessed and replaced for future confirmatory testing."
+  },
+  "feature_scaling": {
+    "l1_mid_bid_ask_change_clip_percent_approx_each": 22.84,
+    "bar_open_gap_clip_percent_approx": 17.39,
+    "l1_size_change_clip_percent_approx": 8.0,
+    "sampled_l2_size_clip_percent": 7.77,
+    "cause": "Zero-MAD sparse and discrete fields use the 1e-6 scale floor, then clip to [-8,8]."
+  },
+  "target_redundancy": {
+    "presence_positive_fraction": 1.0,
+    "total_poc_equals_one_side_fraction_range": [0.989, 0.996],
+    "poc_head_correlation_range": [0.93, 0.97],
+    "three_poc_heads_forecast_weight_fraction": 0.75
+  },
+  "forward_pinball_by_target": {
+    "poc": {
+      "model": 0.260869,
+      "published_empirical_baseline": 0.275374,
+      "model_relative_improvement_percent": 5.2672
+    },
+    "log_volume": {
+      "model": 0.277922,
+      "published_empirical_baseline": 0.258970,
+      "model_relative_improvement_percent": -7.3182
+    },
+    "delta": {
+      "model": 0.167994,
+      "published_empirical_baseline": 0.146328,
+      "model_relative_improvement_percent": -14.8064
+    }
+  },
+  "regime_and_baselines": {
+    "h1_poc_std_ticks": {
+      "train": 371.8,
+      "selected_validation": 211.1,
+      "development_forward": 280.2
+    },
+    "daily_median_absolute_h1_poc_usdt_range": [5.75, 33.85],
+    "published_all_train_baseline_forward": 0.257193,
+    "recent_three_day_baseline_forward": 0.253042,
+    "hour_conditioned_baseline_forward": 0.255438,
+    "model_forward": 0.251391,
+    "model_absolute_advantage_vs_recent_three_day": 0.001651,
+    "previous_minute_footprint_baseline_forward": 0.308322
+  },
+  "dependence": {
+    "horizon_occurrences": 171720,
+    "unique_future_minutes": 34440,
+    "typical_future_minute_reuse": 5,
+    "repeated_label_reconstruction_max_disagreement": {
+      "poc_ticks": 1e-10,
+      "log_volume": 4.4e-7,
+      "delta": 0.0
+    }
+  },
+  "session_boundary": {
+    "partial_64_bar_context_fraction": 0.0419,
+    "behavior": "Bar history and EMA restart at each UTC day boundary."
+  },
+  "causality_and_provenance": {
+    "decision_lag_ms": 0,
+    "final_l1_age_exactly_zero_fraction_authorized_rows": 0.0558,
+    "event_time_used_as_availability_proxy": true,
+    "independent_receive_timestamp": false,
+    "native_l2_sequence_checksum_evidence": false,
+    "aggressor_side_semantics_independently_verified": false,
+    "instrument_metadata_effective_dated": false
+  },
+  "checks_passed": [
+    "Horizon alignment is correct: features end at t and labels cover the five subsequent one-minute windows.",
+    "Repeated overlapping labels reconstruct identically within numerical tolerance.",
+    "Split sessions are chronological with no cross-day dependency overlap.",
+    "Scaler binding is train-only and content-addressed.",
+    "No mask gaps, target-scaler contamination, trade-ID gaps, out-of-order trades, or material quantization errors were found.",
+    "No checkpoint hash mismatch, NaN, attention runaway, or source-tree identity mismatch was found."
+  ]
+}

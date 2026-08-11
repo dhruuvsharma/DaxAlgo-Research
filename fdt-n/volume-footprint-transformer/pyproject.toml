@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "daxalgo-volume-footprint-transformer"
+version = "0.1.0"
+description = "Pro-private FDT-N footprint distribution transformer research and training tool"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26,<3",
+    "torch>=2.5,<2.6",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.2,<9", "ruff>=0.5,<1"]
+onnx = ["onnx>=1.17,<2", "onnxruntime>=1.20,<2"]
+report = ["matplotlib>=3.9,<4", "reportlab>=4.2,<5", "pypdf>=5,<6"]
+
+[project.scripts]
+daxalgo-footprint-transformer = "daxalgo_footprint_transformer.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["daxalgo_footprint_transformer*"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+markers = ["onnx: requires optional ONNX dependencies"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["daxalgo_footprint_transformer"]
