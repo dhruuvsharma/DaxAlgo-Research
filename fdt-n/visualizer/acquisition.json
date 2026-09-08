@@ -1,0 +1,45 @@
+{
+  "archives": [
+    {
+      "bytes": 37569305,
+      "name": "BTCUSDT-trades-2024-01-12.zip",
+      "sha256": "57cfbc6f9eaa8bd68a0cfb665d4efe1679d90afe105619ff411e73b04ace9dd1"
+    },
+    {
+      "bytes": 18688682,
+      "name": "BTCUSDT-trades-2024-01-13.zip",
+      "sha256": "eba3d2629cc00076c9c299bc75c94bee9c259b96a03eb7d61ec6c66d7a6a9a15"
+    },
+    {
+      "bytes": 15885419,
+      "name": "BTCUSDT-trades-2024-01-14.zip",
+      "sha256": "79c9ca1d91472d1efbd71d35ff0030d3a0d886008278af521305ef6bc6115e21"
+    }
+  ],
+  "bars": 4320,
+  "creates_order_signals": false,
+  "days": [
+    "2024-01-12",
+    "2024-01-13",
+    "2024-01-14"
+  ],
+  "encoded_price_rows": 70332,
+  "encoding": {
+    "cumulative_delta_scale": 4.0,
+    "gap_scale_ticks": 32.0,
+    "horizon_bars": 8,
+    "imbalance_ratio": 3.0,
+    "interval_seconds": 60,
+    "log_volume_scale": 4.0,
+    "lookback_bars": 64,
+    "max_rows": 1024,
+    "price_scale_ticks": 64.0,
+    "quantity_scale": 1000.0,
+    "row_size": 2.5
+  },
+  "research_only": true,
+  "role": "out-of-sample for frozen seed-17 weights (same tail as frozen test split)",
+  "source": "Binance Data Vision spot daily trades (re-download of frozen study period)",
+  "symbol": "BTCUSDT",
+  "windows": 4249
+}

@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FDT-N Visualizer — Volume-Footprint Distribution Transformer</title>
+<style>
+  :root {
+    --bg: #0b0f17; --panel: #121826; --panel2: #0e1420; --line: #1e2941;
+    --text: #dbe4f3; --muted: #7d8aa3; --dim: #55617a;
+    --acc: #4f8cff; --acc2: #22d3a5; --warn: #f2b544; --neg: #f2698a;
+    --buy: #22d3a5; --sell: #f2698a;
+    --mono: "Cascadia Code", "Consolas", "SF Mono", monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--text); font: 15px/1.55 "Segoe UI", system-ui, sans-serif; }
+  body { padding-bottom: 60px; }
+  h1 { font-size: 21px; font-weight: 600; letter-spacing: .2px; }
+  h2 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+  h3 { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 6px; }
+  a { color: var(--acc); }
+  header { position: sticky; top: 0; z-index: 10; background: rgba(11,15,23,.92); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line); padding: 10px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  header .logo { width: 26px; height: 26px; }
+  header .sub { color: var(--muted); font-size: 12.5px; }
+  nav { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+  nav button { background: none; border: 1px solid transparent; color: var(--muted); padding: 6px 14px;
+    border-radius: 8px; font-size: 14px; cursor: pointer; font-family: inherit; }
+  nav button:hover { color: var(--text); background: var(--panel); }
+  nav button.on { color: #fff; background: linear-gradient(135deg, #2a4a8f, #1c3f7a); border-color: #3d6cd8; }
+  main { max-width: 1280px; margin: 0 auto; padding: 22px 20px; }
+  section.tab { display: none; }
+  section.tab.on { display: block; animation: fade .25s; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } }
+  .grid { display: grid; gap: 14px; }
+  .cards { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card .big { font-size: 22px; font-weight: 600; font-family: var(--mono); }
+  .card .lbl { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+  .card .note { color: var(--dim); font-size: 11.5px; margin-top: 6px; }
+  .pos { color: var(--acc2); } .negv { color: var(--neg); } .warnv { color: var(--warn); }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 14px; }
+  .panel.grab { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: right; font-family: var(--mono); font-size: 12.5px; }
+  th { color: var(--muted); font-weight: 600; text-align: right; }
+  th:first-child, td:first-child { text-align: left; font-family: inherit; }
+  tr:last-child td { border-bottom: none; }
+  tr.hl td { background: rgba(79,140,255,.08); }
+  .chip { display: inline-block; border: 1px solid var(--line); background: var(--panel2); color: var(--muted);
+    border-radius: 6px; padding: 2px 8px; font-size: 11.5px; font-family: var(--mono); margin: 2px 4px 2px 0; vertical-align: middle; }
+  .chip b { color: var(--text); font-weight: 500; }
+  .banner { border-left: 3px solid var(--warn); background: rgba(242,181,68,.07); padding: 10px 14px; border-radius: 0 8px 8px 0;
+    font-size: 13px; color: #d8c9a8; margin-bottom: 14px; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin: 8px 0; }
+  .legend .sw { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+  canvas { display: block; }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; align-items: stretch; }
+  .row > * { flex: 1 1 340px; min-width: 300px; }
+  .ctl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .ctl label { color: var(--muted); font-size: 12.5px; }
+  select, .ctl button { background: var(--panel2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; padding: 6px 12px; font-size: 13px; font-family: inherit; cursor: pointer; }
+  .ctl button.primary { background: linear-gradient(135deg, #2a4a8f, #1c3f7a); border-color: #3d6cd8; color: #fff; }
+  .ctl input[type=range] { accent-color: var(--acc); }
+  .flowstage { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 16px; margin-bottom: 0; cursor: pointer; transition: border-color .15s; }
+  .flowstage:hover { border-color: #3d6cd8; }
+  .flowstage.on { border-color: var(--acc); box-shadow: 0 0 0 1px var(--acc); }
+  .flowstage .t { font-weight: 600; font-size: 14px; margin-bottom: 3px; }
+  .flowstage .d { color: var(--muted); font-size: 12px; min-height: 32px; }
+  .flowstage .sh { color: var(--dim); font-size: 11px; font-family: var(--mono); margin-top: 6px; }
+  #flowpipeline { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; font-size: 13px; }
+  .kv dt { color: var(--muted); } .kv dd { font-family: var(--mono); font-size: 12.5px; }
+  .arrow { color: var(--dim); text-align: center; font-size: 16px; padding: 0 4px; align-self: center; }
+  .foot { color: var(--dim); font-size: 11.5px; margin-top: 18px; text-align: center; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 900px) { .two { grid-template-columns: 1fr; } }
+  .barpath-note { font-size: 11.5px; color: var(--dim); margin-top: 4px; }
+  .stat-line { font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+  .stat-line b { color: var(--text); font-weight: 500; }
+  .hidden { display: none !important; }
+  .numgrid { font-family: var(--mono); font-size: 11px; }
+  .note-sm { font-size: 12px; color: var(--dim); margin-top: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <svg class="logo" viewBox="0 0 26 26"><rect x="1" y="1" width="24" height="24" rx="6" fill="none" stroke="#4f8cff" stroke-width="2"/><path d="M6 8v10M10 5v16M14 10v6M18 7v12" stroke="#4f8cff" stroke-width="2.4" stroke-linecap="round"/><path d="M4 20h18" stroke="#22d3a5" stroke-width="2" stroke-linecap="round"/></svg>
+  <div>
+    <h1>FDT-N — Volume-Footprint Distribution Transformer</h1>
+    <div class="sub">Interactive visualizer · <span id="hdr-sub">frozen seed-17 research model</span></div>
+  </div>
+  <nav id="nav">
+    <button data-tab="overview" class="on">Overview</button>
+    <button data-tab="flow">Data Flow</button>
+    <button data-tab="replay">Replay Lab</button>
+    <button data-tab="training">Training &amp; Testing</button>
+  </nav>
+</header>
+<main>
+
+<!-- ================= OVERVIEW ================= -->
+<section id="tab-overview" class="tab on">
+  <div class="banner"><b>Research artifact.</b> This model runs in shadow-only-research mode, creates no order
+    signals, and is not a trading system. All visualized data is real Binance BTCUSDT spot trades re-downloaded
+    from the frozen study period and re-encoded with the project's exact pipeline.</div>
+  <div class="panel">
+    <h2>What is FDT-N?</h2>
+    <p style="max-width:900px; color:var(--muted)">
+      A 371,861-parameter transformer that reads the <b style="color:var(--text)">full executed-volume footprint</b>
+      of the last 64 one-minute bars — every traded price row with buy/sell volumes, imbalances, and auction
+      diagnostics — and predicts, for the next 1–8 minutes, an ordered
+      <b style="color:var(--text)">distribution</b> (q10 / q50 / q90) over 7 market-structure targets:
+      POC offset, low, high, buy-POC, sell-POC, relative log-volume, and delta fraction.
+      Rows are pooled by 4 learned <i>auction queries</i>, fused with bar aggregates through a learned gate,
+      passed through 3 causal temporal blocks, then decoded by 8 horizon queries with cross-attention.
+    </p>
+    <div style="margin-top:10px">
+      <span class="chip">model <b>fdt-n</b></span>
+      <span class="chip">version <b id="ov-ver">—</b></span>
+      <span class="chip">params <b>371,861</b></span>
+      <span class="chip">seed <b>17</b>, epoch <b id="ov-epoch">—</b></span>
+      <span class="chip">ONNX sha256 <b id="ov-hash">—</b></span>
+      <span class="chip">runtime <b>shadow-only-research</b></span>
+      <span class="chip">order signals <b>no</b></span>
+    </div>
+  </div>
+  <div class="grid cards" id="ov-cards"></div>
+  <div class="two">
+    <div class="panel">
+      <h2>Frozen study · headline results</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:8px">From the published evidence ledger —
+        14 days of BTCUSDT (2024-01-01..14), purged chronological split, seed 17 selected on validation loss.</p>
+      <table id="ov-frozen"></table>
+    </div>
+    <div class="panel">
+      <h2>Live replay check · this file</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:8px">Re-computed by this page's data pipeline on
+        <b id="ov-live-windows">—</b> real out-of-sample windows (the frozen study's test-period tail,
+        re-downloaded 2026 from Binance Data Vision and bit-exactly re-encoded).</p>
+      <table id="ov-live"></table>
+      <p class="note-sm">Direction (FDT-N better than persistence on pooled q50 MAE) matches the frozen study;
+        absolute levels differ because the frozen test set covered the full 14-day tail with a different window
+        count and the live replay uses the model in float32 without calibration.</p>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>How this page was built (provenance)</h2>
+    <div class="row">
+      <div>
+        <dl class="kv" id="ov-prov"></dl>
+      </div>
+      <div>
+        <dl class="kv" id="ov-data"></dl>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DATA FLOW ================= -->
+<section id="tab-flow" class="tab">
+  <div class="panel" style="padding:14px 18px">
+    <h2 style="margin-bottom:4px">How one 64-bar window flows through the model</h2>
+    <div style="color:var(--muted);font-size:13px">Every tensor below is a <b style="color:var(--text)">real
+      activation</b> from the frozen seed-17 weights on the frozen parity window (real BTCUSDT, 2024-01-10 19:13 UTC,
+      up to 187 price rows per bar — 56 live at the anchor). Click a stage to inspect it.</div>
+  </div>
+  <div id="flowpipeline"></div>
+  <div id="flowdetail">
+    <div class="panel" id="fp-1">
+      <div class="row">
+        <div>
+          <h2>Input · 64 sealed 1-minute footprint bars</h2>
+          <p style="font-size:12.5px;color:var(--muted)">Left: per-bar price rows colored by executed volume
+            (green = buy-dominant, red = sell-dominant). Each bar keeps <b>every</b> traded price row —
+            no compaction. Right: the 23 per-bar features (encoding of POC, gaps, volumes, deltas, time-of-day).</p>
+          <div class="legend"><span><span class="sw" style="background:var(--buy)"></span>buy volume</span>
+            <span><span class="sw" style="background:var(--sell)"></span>sell volume</span>
+            <span><span class="sw" style="background:#33415e"></span>missing row</span></div>
+          <canvas id="cv-input" width="1180" height="330"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="panel" id="fp-2">
+      <h2>Row projection → 11 features per price row become 64-channel tokens</h2>
+      <p style="font-size:12.5px;color:var(--muted)">Linear → GELU → Linear → RMSNorm for each of the up-to-187
+        price rows per bar. Heat map below: rows (price levels, high→low) × channels for the selected bar;
+        padded rows are grayed.</p>
+      <canvas id="cv-rowproj" width="1180" height="330"></canvas>
+      <div class="ctl" style="margin-top:8px">
+        <label>bar (every 8th stored)</label><input type="range" id="rowproj-bar" min="0" max="56" step="8" value="56" style="width:280px">
+        <span class="stat-line" id="rowproj-lbl"></span>
+      </div>
+    </div>
+    <div class="panel" id="fp-3">
+      <h2>Auction-query pooling → each bar's rows collapse to 4 tokens</h2>
+      <p style="font-size:12.5px;color:var(--muted)">4 learned queries cross-attend over the price rows
+        (per-bar, ragged, masked). Left: attention weight of each query over the anchor bar's rows
+        (padded rows grayed). Right: the 4 pooled 64-channel tokens for the anchor bar.</p>
+      <div class="two">
+        <canvas id="cv-rowattn" width="560" height="330"></canvas>
+        <canvas id="cv-rowpooled" width="560" height="330"></canvas>
+      </div>
+    </div>
+    <div class="panel" id="fp-4">
+      <h2>Row summary + bar projection → fusion gate</h2>
+      <p style="font-size:12.5px;color:var(--muted)">The 4 tokens per bar are squashed to one 64-channel row
+        summary; bar features are projected to 64 channels; a learned sigmoid gate blends them per channel and
+        per bar: <span class="chip">temporal = gate·row + (1−gate)·bar + projected</span></p>
+      <canvas id="cv-gate" width="1180" height="300"></canvas>
+      <div class="legend"><span><span class="sw" style="background:var(--acc)"></span>gate → row footprint</span>
+        <span><span class="sw" style="background:var(--acc2)"></span>gate → bar aggregates</span>
+        <span class="sw" style="background:#22304d"></span><span style="color:var(--muted)">overlay: projected residual</span></div>
+    </div>
+    <div class="panel" id="fp-5">
+      <h2>Causal temporal stack → 3 × (RMSNorm · MHA · LayerScale · SwiGLU)</h2>
+      <p style="font-size:12.5px;color:var(--muted)">64-bar sequence attends only to the past. Below:
+        head-averaged 64×64 attention for each block (row = query bar, column = key bar; strict upper
+        triangle is masked). Brighter = more attention. Row 63 detail on the right.</p>
+      <div class="two">
+        <canvas id="cv-tempattn" width="1180" height="330"></canvas>
+        <canvas id="cv-tempattn-row" width="1180" height="120"></canvas>
+      </div>
+      <div class="ctl">
+        <label>temporal block</label>
+        <select id="tempattn-sel"><option value="0">block 0</option><option value="1">block 1</option><option value="2" selected>block 2</option></select>
+        <label>head</label>
+        <select id="tempattn-head"><option value="avg" selected>average</option><option value="0">head 0</option><option value="1">head 1</option><option value="2">head 2</option><option value="3">head 3</option></select>
+      </div>
+    </div>
+    <div class="panel" id="fp-6">
+      <h2>Horizon decoding → 8 horizon queries cross-attend the bar memory</h2>
+      <p style="font-size:12.5px;color:var(--muted)">Two decoder blocks: horizon self-attention + cross-attention
+        over the 64-bar memory. Left: block-2 attention of each horizon (1..8) over bars (0..63).
+        Right: pooled attention by bar — which minutes the forecast actually reads.</p>
+      <div class="two">
+        <canvas id="cv-decattn" width="560" height="330"></canvas>
+        <canvas id="cv-decpool" width="560" height="330"></canvas>
+      </div>
+      <div class="ctl">
+        <label>decoder block</label>
+        <select id="decattn-sel"><option value="0">block 0</option><option value="1" selected>block 1</option></select>
+        <label>head</label>
+        <select id="decattn-head"><option value="avg" selected>average</option><option value="0">head 0</option><option value="1">head 1</option><option value="2">head 2</option><option value="3">head 3</option></select>
+      </div>
+    </div>
+    <div class="panel" id="fp-7">
+      <h2>Ordered quantile head → 8×7×3 numbers, guaranteed coherent</h2>
+      <p style="font-size:12.5px;color:var(--muted)">Each horizon-query vector maps to 21 raw logits, then to
+        (median, +softplus gap, −softplus gap) per target; low = min(low, poc), high = max(high, poc),
+        buy/sell-POC clamped inside [low, high]; delta fraction squashed by tanh. Below: the resulting
+        q10/q50/q90 for POC offset, in real USDT (× 160 from anchor POC), vs what actually happened.</p>
+      <canvas id="cv-quantile" width="1180" height="380"></canvas>
+      <div class="legend"><span><span class="sw" style="background:rgba(79,140,255,.35)"></span>q10–q90 band</span>
+        <span><span class="sw" style="background:var(--acc)"></span>q50 forecast</span>
+        <span><span class="sw" style="background:var(--warn)"></span>actual realized POC</span>
+        <span><span class="sw" style="background:#33415e"></span>anchor POC reference</span></div>
+      <div class="stat-line" id="quantile-stat" style="margin-top:6px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= REPLAY LAB ================= -->
+<section id="tab-replay" class="tab">
+  <div class="panel" style="padding:14px 18px">
+    <h2 style="margin-bottom:4px">Live replay on real history</h2>
+    <div style="color:var(--muted);font-size:13px">
+      Sliding 64-bar windows over real BTCUSDT 1-minute data (the frozen study's out-of-sample test tail).
+      For each window the frozen model emits q10/q50/q90 distributions for the next 8 minutes —
+      here shown against <b style="color:var(--text)">the actual realized values</b>. Statistics accumulate
+      as you play, so you can watch the honest error picture build up in real time.
+      <span id="replay-count" class="chip" style="margin-left:6px"></span></div>
+  </div>
+  <div class="panel">
+    <div class="ctl">
+      <button class="primary" id="replay-play">▶ Play</button>
+      <button id="replay-step">Step +1</button>
+      <button id="replay-reset">Reset</button>
+      <label>speed</label>
+      <select id="replay-speed"><option value="1200">0.5×</option><option value="600" selected>1×</option><option value="300">2×</option><option value="150">4×</option></select>
+      <label>target</label>
+      <select id="replay-target"></select>
+      <label><input type="checkbox" id="replay-persist" checked> show persistence</label>
+    </div>
+    <canvas id="cv-replay" width="1180" height="420"></canvas>
+    <div class="legend"><span><span class="sw" style="background:rgba(79,140,255,.35)"></span>q10–q90 band</span>
+      <span><span class="sw" style="background:var(--acc)"></span>q50 forecast</span>
+      <span><span class="sw" style="background:var(--warn)"></span>actual</span>
+      <span><span class="sw" style="background:#8a93a8"></span>persistence (last value)</span>
+      <span><span class="sw" style="background:#33415e"></span>anchor reference</span></div>
+  </div>
+  <div class="grid cards" id="replay-cards"></div>
+  <div class="two">
+    <div class="panel">
+      <h2>Accumulating q50 error</h2>
+      <canvas id="cv-replay-mae" width="560" height="220"></canvas>
+    </div>
+    <div class="panel">
+      <h2>Coverage of the central 80% band</h2>
+      <canvas id="cv-replay-cover" width="560" height="220"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TRAINING & TESTING ================= -->
+<section id="tab-training" class="tab">
+  <div class="panel">
+    <h2>Frozen training protocol</h2>
+    <div class="row">
+      <div><dl class="kv" id="tr-protocol"></dl></div>
+      <div><dl class="kv" id="tr-data"></dl></div>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Seed stability (test set)</h2>
+    <table id="tr-seeds"></table>
+    <p class="note-sm">Seed 17 was selected <i>solely</i> by validation loss. Test numbers for all three seeds
+      are shown to demonstrate stability, not cherry-picking.</p>
+  </div>
+  <div class="panel">
+    <h2>The honest comparison — pooled q50-forecast MAE on the frozen test set</h2>
+    <canvas id="cv-baseline" width="1180" height="260"></canvas>
+    <table id="tr-baseline"></table>
+    <div class="banner" style="margin-top:12px"><b>Negative result, reported honestly.</b>
+      FDT-N beats zero-change persistence by 7.25% pooled, but the simple train-only direct ridge baseline is
+      2.68% <i>better</i> than FDT-N, winning 55 of 56 horizon-target cells. The study's claim is the
+      architecture's <b>viability</b>, not superiority over simple baselines.</div>
+  </div>
+  <div class="two">
+    <div class="panel">
+      <h2>q50 MAE by target</h2>
+      <canvas id="cv-bytarget" width="560" height="300"></canvas>
+    </div>
+    <div class="panel">
+      <h2>q50 MAE by horizon</h2>
+      <canvas id="cv-byhorizon" width="560" height="300"></canvas>
+    </div>
+  </div>
+  <div class="two">
+    <div class="panel">
+      <h2>Distribution calibration</h2>
+      <canvas id="cv-coverage" width="560" height="240"></canvas>
+      <p class="note-sm">Central-80% coverage is near nominal in aggregate (78.98% frozen · 77.18% live across all
+        4,249 windows) — but cell-level variation and no separate calibration set mean this is <i>near-nominal
+        coverage</i>, not a calibrated quantile claim. Bars show live per-target coverage; green = within ±2.5pt
+        of nominal.</p>
+    </div>
+    <div class="panel">
+      <h2>Export & runtime</h2>
+      <dl class="kv" id="tr-runtime"></dl>
+      <p class="note-sm">Artifact timing on one CPU thread, batch-1 window — not end-to-end chart latency,
+        throughput, or production qualification.</p>
+    </div>
+  </div>
+</section>
+
+<div class="foot">
+  FDT-N research visualizer · single self-contained HTML · real Binance BTCUSDT data, frozen seed-17 weights ·
+  shadow-only-research · creates no order signals
+</div>
+</main>
+<script id="payload" type="application/json">__PAYLOAD__</script>
+<script>
+"use strict";
+const DATA = JSON.parse(document.getElementById("payload").textContent);
+
+// ---------- helpers ----------
+const $ = (s) => document.querySelector(s);
+const T = DATA.stages, M = DATA.metrics, F = DATA.frozen, ME = DATA.meta, RP = DATA.replay;
+const PRICE_USD = ME.price_scale_usd;    // offset 1.0 == 160 USDT
+const GAP_USD = ME.gap_scale_usd;
+const fmt = (x, d=3) => x == null ? "—" : x.toFixed(d);
+const pct = (x, d=1) => x == null ? "—" : (100*x).toFixed(d) + "%";
+const usd = (x) => (x >= 0 ? "+" : "−") + "$" + Math.abs(x*PRICE_USD).toFixed(0);
+const ts2t = (ms) => { const d = new Date(ms); return d.toISOString().slice(5,16).replace("T"," "); };
+const qnames = ME.target_names;
+const QT = ["q10","q50","q90"];
+
+function canvas(id, w, h) {
+  const c = document.getElementById(id);
+  if (!c) return null;
+  const r = window.devicePixelRatio || 1;
+  if (w) { c.width = w * r; c.style.width = w + "px"; c.height = h * r; c.style.height = h + "px"; }
+  const x = c.getContext("2d");
+  x.setTransform(r, 0, 0, r, 0, 0);
+  return x;
+}
+
+// ---------- tabs ----------
+document.querySelectorAll("#nav button").forEach((b) => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll("#nav button").forEach((x) => x.classList.remove("on"));
+    document.querySelectorAll("section.tab").forEach((x) => x.classList.remove("on"));
+    b.classList.add("on");
+    $("#tab-" + b.dataset.tab).classList.add("on");
+    if (b.dataset.tab === "flow") drawFlow();
+    if (b.dataset.tab === "replay") replayDraw();
+    if (b.dataset.tab === "training") drawTraining();
+  });
+});
+
+// ---------- OVERVIEW ----------
+function buildOverview() {
+  $("#ov-ver").textContent = ME.model_version;
+  $("#ov-epoch").textContent = ME.checkpoint_epoch;
+  const h = ME.onnx_sha256;
+  $("#ov-hash").textContent = h.slice(0,8) + "…" + h.slice(-6);
+  const cards = [
+    ["Pooled q50 MAE (frozen test)", fmt(F.pooled_mae.fdt), "vs persistence " + fmt(F.pooled_mae.persistence) + " · ridge " + fmt(F.pooled_mae.ridge), ""],
+    ["Better than persistence", "−" + pct(1 - F.pooled_mae.fdt / F.pooled_mae.persistence, 2), "pooled q50 MAE on the frozen test split", "pos"],
+    ["vs direct ridge", "+" + pct(F.pooled_mae.fdt / F.pooled_mae.ridge - 1, 2), "ridge wins 55/56 cells — honest negative result", "negv"],
+    ["Central-80% coverage", pct(F.seeds[0].coverage, 2), "near nominal; no separate calibration set", ""],
+    ["ONNX export parity", F.onnx_parity.max_abs.toExponential(1), "max abs err vs PyTorch, tol 1e−4", ""],
+    ["CPU latency p50", F.cpu_latency_ms.p50.toFixed(1) + " ms", "artifact timing, batch-1 window, 50 runs", ""],
+  ];
+  $("#ov-cards").innerHTML = cards.map(([l,b,n,c]) =>
+    '<div class="card"><div class="big ' + c + '">' + b + '</div><div class="lbl">' + l + '</div><div class="note">' + n + '</div></div>').join("");
+  // frozen table
+  const s17 = F.seeds[0];
+  const rows = [
+    ["Validation pinball loss", s17.val.toFixed(6)],
+    ["Test pinball loss", s17.test.toFixed(6)],
+    ["Pooled q10/q50/q90 pinball", F.pooled_pinball.q10.toFixed(6) + " / " + F.pooled_pinball.q50.toFixed(6) + " / " + F.pooled_pinball.q90.toFixed(6)],
+    ["Pooled q50 MAE — FDT-N", F.pooled_mae.fdt.toFixed(6)],
+    ["Pooled q50 MAE — persistence", F.pooled_mae.persistence.toFixed(6)],
+    ["Pooled q50 MAE — direct ridge", F.pooled_mae.ridge.toFixed(6)],
+    ["Mean interval width (normalized)", F.pooled_interval_width.toFixed(6)],
+    ["Central-80% coverage", pct(s17.coverage, 2)],
+    ["POC sign agreement", pct(s17.poc_sign, 2)],
+  ];
+  $("#ov-frozen").innerHTML = rows.map(([a,b],i) =>
+    '<tr' + (i>2&&i<6?' class="hl"':'') + '><td>' + a + '</td><td>' + b + '</td></tr>').join("");
+  // live table
+  const live = [
+    ["Windows replayed here", M.windows.toLocaleString()],
+    ["Pooled q50 MAE — FDT-N (live)", fmt(M.pooled.median_mae_normalized)],
+    ["Pooled q50 MAE — persistence (live)", fmt(M.persistence_pooled_q50_mae)],
+    ["Live improvement vs persistence", pct(1 - M.pooled.median_mae_normalized / M.persistence_pooled_q50_mae)],
+    ["Central-80% coverage (live)", pct(M.pooled.central_80_coverage)],
+    ["Mean interval width (live)", fmt(M.pooled.mean_interval_width_normalized)],
+    ["POC sign agreement (live)", pct(M.pooled.poc_directional_hit_rate)],
+    ["Pooled q10/q50/q90 pinball (live)",
+      fmt(M.pooled.pinball_normalized.q10) + " / " + fmt(M.pooled.pinball_normalized.q50) + " / " + fmt(M.pooled.pinball_normalized.q90)],
+  ];
+  $("#ov-live").innerHTML = live.map(([a,b]) => '<tr><td>' + a + '</td><td>' + b + '</td></tr>').join("");
+  $("#ov-live-windows").textContent = M.windows.toLocaleString();
+  // provenance
+  const prov = [
+    ["Model", ME.model_kind + " v" + ME.model_version],
+    ["Parameters", ME.parameter_count.toLocaleString()],
+    ["Selected seed / epoch", "17 / " + ME.checkpoint_epoch],
+    ["Weights restored from", "doc/model/fdt-n.onnx (frozen export)"],
+    ["Restore parity, fixture", "0.0 max abs err"],
+    ["Restore parity, random windows", ME.restore_parity_random_windows_max.toExponential(1) + " max abs err (n=3)"],
+    ["Verify gate", "≤ 1e−4 vs frozen expected quantiles"],
+  ];
+  $("#ov-prov").innerHTML = prov.map(([a,b]) => "<dt>" + a + "</dt><dd>" + b + "</dd>").join("");
+  const dinfo = ME.data;
+  $("#ov-data").innerHTML = [
+    ["Data source", "Binance Data Vision spot daily trades"],
+    ["Symbol / interval", "BTCUSDT · 1 minute"],
+    ["Re-downloaded days", dinfo.days.join(", ")],
+    ["Bars re-encoded", dinfo.bars.toLocaleString() + " (" + dinfo.encoded_price_rows.toLocaleString() + " price rows)"],
+    ["Fixture window re-encode", "bit-identical (max diff 0.0)"],
+    ["Environment", "python " + ME.environment.python + " · torch " + ME.environment.torch + " · numpy " + ME.environment.numpy],
+    ["Rendering", "fully offline · no CDN · single HTML file"],
+  ].map(([a,b]) => "<dt>" + a + "</dt><dd>" + b + "</dd>").join("");
+}
+buildOverview();
+
+// ---------- DATA FLOW ----------
+const FLOW_STAGES = [
+  {id:1, t:"① Input window", d:"64 sealed footprint bars · ragged price rows ×11 features + 23 bar features", sh:"[64, R, 11] + [64, 23]"},
+  {id:2, t:"② Row projection", d:"Per-row MLP: 11 → 64 channels (Linear · GELU · Linear · RMSNorm)", sh:"[64·R, 64]"},
+  {id:3, t:"③ Auction-query pooling", d:"4 learned queries cross-attend over each bar's price rows (masked)", sh:"[64, 4, 64]"},
+  {id:4, t:"④ Fusion gate", d:"Sigmoid gate blends row footprint with projected bar aggregates, plus residual", sh:"[64, 64]"},
+  {id:5, t:"⑤ Temporal stack", d:"3 causal blocks: MHA + LayerScale + SwiGLU over the 64-bar sequence", sh:"[64, 64] ×3"},
+  {id:6, t:"⑥ Horizon decoding", d:"8 horizon queries: self-attend + cross-attend the bar memory, ×2 blocks", sh:"[8, 64] ×2"},
+  {id:7, t:"⑦ Quantile head", d:"Linear → median + softplus gaps → ordering & clamps → 8×7×3 quantiles", sh:"[8, 7, 3]"},
+];
+function buildFlowNav() {
+  $("#flowpipeline").innerHTML = FLOW_STAGES.map((s,i) =>
+    '<div class="flowstage' + (i===0?" on":"") + '" data-i="' + i + '"><div class="t">' + s.t +
+    '</div><div class="d">' + s.d + '</div><div class="sh">' + s.sh + '</div></div>' +
+    (i < 6 ? '<div class="arrow">→</div>' : "")
+  ).join("");
+  document.querySelectorAll(".flowstage").forEach((el) => el.addEventListener("click", () => {
+    document.querySelectorAll(".flowstage").forEach((x) => x.classList.remove("on"));
+    el.classList.add("on");
+    document.getElementById("fp-" + (parseInt(el.dataset.i)+1)).scrollIntoView?.({behavior:"smooth", block:"start"});
+  }));
+}
+
+function drawFlow() { drawInput(); drawRowProj(); drawRowAttn(); drawGate(); drawTempAttn(); drawDecAttn(); drawQuantile(); }
+
+const ROWS_FEAT = T.row_features;        // [64, 187, 11]
+const ROWS_MASK = T.row_mask;             // [64, 187]
+const NBARS = 64;
+
+function drawInput() {
+  const x = canvas("cv-input", 1180, 330); if (!x) return;
+  const W = 1180, H = 330, pad = 34;
+  x.clearRect(0,0,W,H);
+  // left: 64 bars as volume columns; rows stacked by price offset (feat 0), color = delta share (feat 4)
+  const bw = 13, gap = 3, x0 = pad, yMid = 90;
+  const f = (i, j) => ROWS_FEAT[i][j];
+  const alive = (i, j) => ROWS_MASK[i][j];
+  // scale from real data range (offsets ∈ [-2,2], total_share ≤ ~0.75)
+  const scaleRow = 62 / 2.0;
+  for (let i=0;i<NBARS;i++) {
+    for (let j=0;j<187;j++) {
+      if (!alive(i,j)) continue;
+      const off = f(i,j,0) * scaleRow;             // pixels around yMid (±62px)
+      const total = Math.max(f(i,j,3), 0.001);      // total_share
+      const delta = f(i,j,4) / Math.max(total, 1e-6); // -1..1
+      const hpx = Math.min(total * 230, 56);
+      const yy = yMid - off;
+      const col = delta >= 0 ? `rgba(34,211,165,${0.25 + 0.6*Math.min(Math.abs(delta)*2,1)})`
+                             : `rgba(242,105,138,${0.25 + 0.6*Math.min(Math.abs(delta)*2,1)})`;
+      x.fillStyle = col;
+      x.fillRect(x0 + i*(bw+gap), yy - hpx/2, bw, hpx);
+    }
+  }
+  // anchor marker
+  const ax = x0 + 63*(bw+gap);
+  x.strokeStyle = "#4f8cff"; x.setLineDash([3,3]); x.lineWidth = 1;
+  x.strokeRect(ax - 2.5, 20, bw + 5, H - 60); x.setLineDash([]);
+  x.fillStyle = "#4f8cff"; x.font = "11px monospace";
+  x.fillText("anchor bar (t)", ax - 30, H - 8);
+  x.fillStyle = "#55617a"; x.fillText("high", W - 60, 12); x.fillText("low", W - 60, H - 6);
+  // arrow
+  x.strokeStyle = "#33415e"; x.beginPath(); x.moveTo(W/2 + 30, yMid); x.lineTo(W/2 + 60, yMid); x.stroke();
+  // right: bar features heatmap [64,23]
+  const bx = W/2 + 100, by = 22, cw2 = 2.6, ch = 10.5;
+  const bf = T.bar_features;
+  for (let i=0;i<NBARS;i++) for (let k=0;k<23;k++) {
+    const v = bf[i][k];
+    const a = Math.min(Math.abs(v) / 1.2, 1);
+    x.fillStyle = v >= 0 ? `rgba(79,140,255,${0.12 + 0.75*a})` : `rgba(242,181,68,${0.12 + 0.75*a})`;
+    x.fillRect(bx + (23-1-k)*cw2, by + (63-i)*ch, cw2 - .5, ch - .5);
+  }
+  x.fillStyle = "#55617a"; x.font = "10px monospace";
+  for (let k=0;k<23;k+=2) x.fillText(ME.bar_feature_names[k].slice(0,9), bx + (22-k)*cw2 - 4, by + 64*ch + 12);
+  x.save(); x.translate(14, by + 64*ch/2); x.rotate(-Math.PI/2);
+  x.fillText("23 bar features →", -60, 0); x.restore();
+  x.fillText("price rows (colored by buy/sell dominance, size = volume share)", x0, H - 22);
+}
+
+function drawRowProj() {
+  const bar = parseInt($("#rowproj-bar").value);
+  const x = canvas("cv-rowproj", 1180, 330); if (!x) return;
+  const W = 1180, H = 330;
+  x.clearRect(0,0,W,H);
+  const bars = T.row_projected_bars;   // [0,8,...,56] — sampled every 8th bar
+  const idx = bars.indexOf(bar);
+  const grid = T.row_projected[idx >= 0 ? idx : bars.length - 1];
+  const shownBar = bars[idx >= 0 ? idx : bars.length - 1];
+  const rows = grid.length, chn = 64;
+  const cw = Math.min(14, (W-90)/chn), rh = Math.min(6.5, (H-70)/rows);
+  const x0 = 80, y0 = 30;
+  let liveRows = 0;
+  for (let i=0;i<rows;i++) {
+    const isAlive = ROWS_MASK[shownBar][i];
+    if (isAlive) liveRows++;
+    for (let k=0;k<chn;k++) {
+      const v = grid[i][k];
+      const a = Math.min(Math.abs(v)/3.8, 1);
+      x.fillStyle = !isAlive ? "rgba(40,50,70,.25)"
+        : v >= 0 ? `rgba(79,140,255,${0.08+0.8*a})` : `rgba(242,105,138,${0.08+0.8*a})`;
+      x.fillRect(x0 + k*cw, y0 + i*rh, cw-0.5, rh-0.5);
+    }
+  }
+  x.fillStyle = "#55617a"; x.font = "10px monospace";
+  x.fillText("channel 0", x0, y0 - 8); x.fillText("channel 63", x0 + 63*cw - 12, y0 - 8);
+  x.fillText("high price row", 4, y0 + 8);
+  x.fillText("low price row", 4, y0 + rows*rh - 2);
+  $("#rowproj-lbl").textContent = "bar " + shownBar + " of 63 (stored every 8th) · " + liveRows + " live price rows × 64 channels · blue = positive, red = negative, gray = padding";
+  // price offsets axis
+  x.strokeStyle = "#33415e"; x.beginPath(); x.moveTo(x0-6, y0); x.lineTo(x0-6, y0+rows*rh); x.stroke();
+}
+
+function drawRowAttn() {
+  const x1 = canvas("cv-rowattn", 560, 330); if (!x1) return;
+  const A = T.row_attention;            // [H,4,R]
+  const H_ = A.length, Q = 4, R = A[0][0].length;
+  x1.clearRect(0,0,560,330);
+  const liveRows = T.actuals.row_counts[63];
+  // average heads
+  const y0 = 54, rh = Math.max(1.6, (300)/R), wq = 118;
+  for (let j=0;j<R;j++) {
+    const isAlive = j < liveRows;
+    for (let q=0;q<Q;q++) {
+      let v = 0; for (let h=0;h<H_;h++) v += A[h][q][j]; v /= H_;
+      const a = Math.min(v / 0.09, 1);
+      x1.fillStyle = !isAlive ? "rgba(40,50,70,.22)" : `rgba(79,140,255,${0.10 + 0.85*a})`;
+      x1.fillRect(40 + q*wq, y0 + j*rh, wq - 6, rh);
+    }
+  }
+  x1.fillStyle = "#55617a"; x1.font = "10px monospace";
+  x1.fillText("query 0 (total)", 40, y0 - 8); x1.fillText("q1 (buy)", 40+wq, y0-8);
+  x1.fillText("q2 (sell)", 40+2*wq, y0-8); x1.fillText("q3 (imb.)", 40+3*wq, y0-8);
+  x1.fillText(liveRows + " live price rows (high → low) · gray = padding", 40, y0 + R*rh + 16);
+  x1.fillStyle = "#7d8aa3"; x1.font = "11px sans-serif";
+  x1.fillText("attention weight over rows", 40, 20);
+  // right: pooled tokens [4,64]
+  const x2 = canvas("cv-rowpooled", 560, 330);
+  const P = T.row_pooled[63];          // anchor bar pooled tokens [4,64]
+  x2.clearRect(0,0,560,330);
+  const cw = 8.4, chh = 52;
+  for (let q=0;q<4;q++) for (let k=0;k<64;k++) {
+    const v = P[q][k];
+    const a = Math.min(Math.abs(v)/2.5, 1);
+    x2.fillStyle = v>=0 ? `rgba(79,140,255,${0.08+0.85*a})` : `rgba(242,105,138,${0.08+0.85*a})`;
+    x2.fillRect(30 + k*cw, 40 + q*chh, cw-0.7, chh-8);
+  }
+  x2.fillStyle = "#55617a"; x2.font = "10px monospace";
+  const ql = ["q0 total","q1 buy","q2 sell","q3 imb"];
+  for (let q=0;q<4;q++) x2.fillText(ql[q], 4, 40 + q*chh + 22);
+  x2.fillStyle = "#7d8aa3"; x2.font = "11px sans-serif";
+  x2.fillText("pooled tokens — 4 × 64 channels (anchor bar)", 30, 20);
+}
+
+function drawGate() {
+  const x = canvas("cv-gate", 1180, 300); if (!x) return;
+  x.clearRect(0,0,1180,300);
+  const G = T.fusion_gate;             // [64,64] bar × channel
+  const W = 1180, x0 = 60, y0 = 24, cw = 16.5, ch = 3.4;
+  for (let i=0;i<64;i++) for (let k=0;k<64;k++) {
+    const g = G[i][k];
+    x.fillStyle = `rgba(34,211,165,${g*0.9})`;
+    x.fillRect(x0 + k*cw, y0 + i*ch, cw-0.6, ch-0.6);
+  }
+  // overlay residual magnitude as border brightness
+  x.fillStyle = "#55617a"; x.font = "10px monospace";
+  x.fillText("channel 0 →", x0, y0 - 8); x.fillText("63", x0 + 64*cw - 14, y0 - 8);
+  x.fillText("bar 63 (newest)", 2, y0 + 6); x.fillText("bar 0", 2, y0 + 64*ch - 4);
+  const meanG = G.flat().reduce((a,b)=>a+b,0)/4096;
+  x.fillStyle = "#7d8aa3"; x.font = "11px sans-serif";
+  x.fillText("green = gate open → row footprint dominates; darker = bar aggregates dominate · mean gate " + meanG.toFixed(2), x0, 300 - 8);
+}
+
+function drawTempAttn() {
+  const x = canvas("cv-tempattn", 1180, 330); if (!x) return;
+  const blk = parseInt($("#tempattn-sel").value);
+  const headSel = $("#tempattn-head").value;
+  const A0 = T["temporal_attention_" + blk];   // [H,64,64]
+  const H_ = A0.length;
+  x.clearRect(0,0,1180,330);
+  const x0 = 60, y0 = 30, sz = 4.0;
+  const get = (h,i,j) => headSel === "avg"
+    ? (A0.reduce((s,a)=>s+a[i][j],0) / H_)
+    : A0[parseInt(headSel)][i][j];
+  let maxV = 1e-9;
+  for (let i=0;i<64;i++) for (let j=0;j<=i;j++) maxV = Math.max(maxV, get(0,i,j));
+  for (let i=0;i<64;i++) for (let j=0;j<=i;j++) {
+    const v = get(0,i,j) * (i===j ? 0.15 : 1.0);   // dim diagonal for visibility
+    const a = Math.min(v / maxV, 1);
+    x.fillStyle = `rgba(79,140,255,${0.06 + 0.9*a})`;
+    x.fillRect(x0 + j*sz, y0 + i*sz, sz-0.4, sz-0.4);
+  }
+  // diagonal outline
+  x.strokeStyle = "rgba(255,255,255,.14)"; x.beginPath();
+  x.moveTo(x0, y0); x.lineTo(x0 + 64*sz, y0 + 64*sz); x.stroke();
+  x.fillStyle = "#55617a"; x.font = "10px monospace";
+  x.fillText("key bar (past) →", x0, y0 - 8);
+  x.save(); x.translate(14, y0 + 128); x.rotate(-Math.PI/2); x.fillText("query bar ↓", -40, 0); x.restore();
+  x.fillText("causal: upper triangle masked (future hidden)", x0 + 64*sz + 20, y0 + 20);
+  // row detail: query bar 63 attention over keys
+  const x2 = canvas("cv-tempattn-row", 1180, 120);
+  x2.clearRect(0,0,1180,120);
+  const bx0 = 60, bw2 = 16.5, midY = 60;
+  const vals = []; for (let j=0;j<64;j++) vals.push(get(0,63,j));
+  const mx = Math.max(...vals, 1e-6);
+  for (let j=0;j<64;j++) {
+    const hpx = (vals[j]/mx) * 42;
+    x2.fillStyle = j === 63 ? "#4f8cff" : "rgba(79,140,255,.45)";
+    x2.fillRect(bx0 + j*bw2, midY - hpx, bw2-2, hpx*2 || 1);
+  }
+  x2.strokeStyle = "#33415e"; x2.beginPath(); x2.moveTo(bx0, midY); x2.lineTo(bx0 + 64*bw2, midY); x2.stroke();
+  x2.fillStyle = "#55617a"; x2.font = "10px monospace";
+  x2.fillText("query = bar 63 (the newest minute): where it looks in the past", bx0, 14);
+  x2.fillText("bar 0", bx0, 116); x2.fillText("bar 63", bx0 + 63*bw2 - 14, 116);
+}
+
+function drawDecAttn() {
+  const x1 = canvas("cv-decattn", 560, 330); if (!x1) return;
+  const blk = parseInt($("#decattn-sel").value);
+  const headSel = $("#decattn-head").value;
+  const A = T["decoder_attention_" + blk];   // [H,8,64]
+  const H_ = A.length;
+  const get = (h,i,j) => headSel === "avg" ? A.reduce((s,a)=>s+a[i][j],0)/H_ : A[parseInt(headSel)][i][j];
+  x1.clearRect(0,0,560,330);
+  let maxV = 1e-9;
+  for (let i=0;i<8;i++) for (let j=0;j<64;j++) maxV = Math.max(maxV, get(0,i,j));
+  const x0 = 44, y0 = 40, cw = 7.0, rh = 32;
+  for (let i=0;i<8;i++) for (let j=0;j<64;j++) {
+    const v = get(0,i,j);
+    const a = Math.min(Math.sqrt(v / maxV), 1);   // sqrt: wide dynamic range (max ~0.93)
+    x1.fillStyle = `rgba(79,140,255,${0.06+0.9*a})`;
+    x1.fillRect(x0 + j*cw, y0 + i*rh, cw-0.5, rh-6);
+  }
+  x1.fillStyle = "#55617a"; x1.font = "10px monospace";
+  for (let i=0;i<8;i++) x1.fillText("h"+(i+1), 22, y0 + i*rh + 14);
+  x1.fillText("horizon queries (1–8 minutes ahead) × 64 bar memory", x0, 24);
+  x1.fillText("bar 0", x0, y0 + 8*rh + 4); x1.fillText("63", x0 + 63*cw, y0 + 8*rh + 4);
+  // pooled attention by bar
+  const x2 = canvas("cv-decpool", 560, 330);
+  x2.clearRect(0,0,560,330);
+  const pooled = [];
+  for (let j=0;j<64;j++) { let s=0; for (let i=0;i<8;i++) s += get(0,i,j); pooled.push(s/8); }
+  const mx = Math.max(...pooled);
+  const bx0 = 40, bw2 = 7.0, midY = 150;
+  for (let j=0;j<64;j++) {
+    const hpx = (pooled[j]/mx) * 90;
+    x2.fillStyle = j===63 ? "#4f8cff" : "rgba(34,211,165,.55)";
+    x2.fillRect(bx0 + j*bw2, midY - hpx, bw2-1.2, hpx*2);
+  }
+  x2.strokeStyle = "#33415e"; x2.beginPath(); x2.moveTo(bx0, midY); x2.lineTo(bx0 + 64*bw2, midY); x2.stroke();
+  x2.fillStyle = "#55617a"; x2.font = "10px monospace";
+  x2.fillText("mean attention received by each bar (all 8 horizons)", bx0, 20);
+  x2.fillText("oldest", bx0, 300); x2.fillText("newest (anchor)", bx0 + 48*bw2, 300);
+}
+
+function drawQuantile() {
+  const x = canvas("cv-quantile", 1180, 380); if (!x) return;
+  x.clearRect(0,0,1180,380);
+  const q = T.quantile_final;          // [8,7,3]
+  const act = T.actuals;               // prediction_check etc
+  const actual = act.targets;          // [8,7]
+  const x0 = 70, y0 = 30, W = 1180;
+  // draw POC offset: horizon 1..8 on x
+  const nq = 8, colW = (W - x0 - 60) / nq;
+  const yMid = 170, scaleP = 95 / 2.0;    // px per normalized unit (targets clipped to ±2)
+  x.strokeStyle = "#33415e"; x.setLineDash([4,4]);
+  x.beginPath(); x.moveTo(x0, yMid); x.lineTo(x0 + nq*colW, yMid); x.stroke(); x.setLineDash([]);
+  x.fillStyle = "#55617a"; x.font = "10px monospace";
+  x.fillText("anchor POC (offset 0)", x0 + nq*colW + 6, yMid + 4);
+  x.fillText("+ $320", x0 - 46, yMid - scaleP*2);
+  x.fillText("− $320", x0 - 46, yMid + scaleP*2);
+  const TI = 0; // poc_offset
+  for (let h=0; h<nq; h++) {
+    const cx = x0 + h*colW + colW/2;
+    const lo = q[h][TI][0], mid = q[h][TI][1], hi = q[h][TI][2];
+    const a = actual[h][TI];
+    // band
+    x.fillStyle = "rgba(79,140,255,.30)";
+    x.fillRect(cx - colW*0.26, yMid - hi*scaleP, colW*0.52, (hi-lo)*scaleP);
+    // median
+    x.strokeStyle = "#4f8cff"; x.lineWidth = 2.4;
+    x.beginPath(); x.moveTo(cx - colW*0.30, yMid - mid*scaleP); x.lineTo(cx + colW*0.30, yMid - mid*scaleP); x.stroke();
+    // actual
+    x.strokeStyle = "#f2b544"; x.lineWidth = 2.4;
+    x.beginPath(); x.moveTo(cx - colW*0.18, yMid - a*scaleP); x.lineTo(cx + colW*0.18, yMid - a*scaleP); x.stroke();
+    // coverage marker
+    const inside = a >= lo && a <= hi;
+    x.fillStyle = inside ? "rgba(34,211,165,.9)" : "rgba(242,105,138,.9)";
+    x.beginPath(); x.arc(cx + colW*0.36, yMid - a*scaleP, 3, 0, 7); x.fill();
+    // per-horizon value labels
+    x.fillStyle = "#7d8aa3"; x.font = "10px monospace";
+    x.fillText("+" + (h+1) + " min", cx - 14, 330);
+    x.fillText(usd(mid) + " → " + usd(a), cx - 46, yMid - a*scaleP - (a >= mid ? 10 : -16));
+  }
+  const inCt = actual.filter((a,h) => a[0] >= q[h][0][0] && a[0] <= q[h][0][2]).length;
+  $("#quantile-stat").innerHTML =
+    "POC offset forecast vs realized · anchor bar " +
+    "<b>2024-01-10 19:13 UTC</b> · " +
+    "q50 forecast " + usd(q[0][TI][1]) + " … " + usd(q[7][TI][1]) +
+    " · actual " + usd(actual[0][TI]) + " … " + usd(actual[7][TI]) +
+    " · central-80% hits <b>" + inCt + "/8</b> · green dot = actual inside band";
+}
+
+// ---------- REPLAY LAB ----------
+let rState = null;
+function replayInit() {
+  const sel = $("#replay-target");
+  const tunits = ["USD vs anchor POC", "USD vs anchor POC", "USD vs anchor POC", "USD vs anchor POC",
+                  "USD vs anchor POC", "log-volume units", "fraction −1…+1"];
+  sel.innerHTML = qnames.map((q,i) =>
+    '<option value="' + i + '"' + (i===0?" selected":"") + '>' + q + ' (' + tunits[i] + ')</option>').join("");
+  rState = { i:0, playing:false, timer:null, ti:0, seen:0, sumAbs:0, sumCover:0, maeHist:[], covHist:[] };
+  $("#replay-play").addEventListener("click", () => {
+    if (rState.playing) { replayStop(); } else { replayStart(); }
+  });
+  $("#replay-step").addEventListener("click", () => { replayStop(); replayStep(); });
+  $("#replay-reset").addEventListener("click", () => {
+    replayStop(); rState.i = 0; replayResetStats();
+    replayDraw();
+  });
+  $("#replay-speed").addEventListener("change", () => { if (rState.playing) { replayStop(); replayStart(); } });
+  sel.addEventListener("change", () => { rState.ti = parseInt(sel.value); replayResetStats(); replayDraw(); });
+  $("#rowproj-bar").addEventListener("input", drawRowProj);
+  $("#tempattn-sel").addEventListener("change", drawTempAttn);
+  $("#tempattn-head").addEventListener("change", drawTempAttn);
+  $("#decattn-sel").addEventListener("change", drawDecAttn);
+  $("#decattn-head").addEventListener("change", drawDecAttn);
+  $("#replay-persist").addEventListener("change", replayDraw);
+  $("#replay-count").textContent = RP.timestamps.length + " sampled windows · 2024-01-12 01:14 → 2024-01-14 23:36 UTC (rng-17 sample of " + ME.windows_total.toLocaleString() + ")";
+}
+function replayResetStats() {
+  rState.seen = 0; rState.sumAbs = 0; rState.sumCover = 0; rState.maeHist = []; rState.covHist = [];
+}
+function replayStart() {
+  rState.playing = true;
+  $("#replay-play").textContent = "⏸ Pause";
+  const period = parseInt($("#replay-speed").value);
+  rState.timer = setInterval(replayStep, period);
+}
+function replayStop() {
+  rState.playing = false;
+  if (rState.timer) clearInterval(rState.timer);
+  $("#replay-play").textContent = "▶ Play";
+}
+function replayStep() {
+  replayAccum();
+  rState.i = (rState.i + 1) % RP.timestamps.length;
+  if (rState.i === 0) replayResetStats();
+  replayDraw();
+}
+function replayAccum() {
+  const w = rState.i, ti = rState.ti;
+  for (let h=0; h<8; h++) {
+    if (!RP.masks[w][h][ti]) continue;
+    const act = RP.targets[w][h][ti];
+    const med = RP.q50[w][h][ti];
+    const lo = RP.q10[w][h][ti], hi = RP.q90[w][h][ti];
+    rState.sumAbs += Math.abs(med - act);
+    rState.sumCover += (act >= lo && act <= hi) ? 1 : 0;
+    rState.seen++;
+  }
+  rState.maeHist.push(rState.seen ? rState.sumAbs / rState.seen : null);
+  rState.covHist.push(rState.seen ? rState.sumCover / rState.seen : null);
+}
+function replayDraw() {
+  const x = canvas("cv-replay", 1180, 420); if (!x) return;
+  const w = rState.i, ti = rState.ti;
+  x.clearRect(0,0,1180,420);
+  const x0 = 90, plotW = 780, yTop = 44, yBot = 320;
+  const xAnchor = x0 + plotW * 0.68;         // context : forecast = 68 : 32
+  const fw = (x0 + plotW - xAnchor) / 8;
+  // unit-aware formatter for the selected target
+  const tv = (v) => ti < 5 ? usd(v)
+    : ti === 5 ? (v >= 0 ? "+" : "−") + Math.abs(v * ME.log_volume_scale).toFixed(1) + " log"
+    : (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(2);
+  // combined y range: context path + all forecast/actual/persist values (same normalized units)
+  const ctx = RP.context_poc[w];
+  let mn = Infinity, mx = -Infinity;
+  const upd = (v) => { mn = Math.min(mn, v); mx = Math.max(mx, v); };
+  for (let j=0;j<64;j++) upd(ctx[j]);
+  for (let h=0;h<8;h++) {
+    upd(RP.q10[w][h][ti]); upd(RP.q90[w][h][ti]);
+    if (RP.masks[w][h][ti]) upd(RP.targets[w][h][ti]);
+    if ($("#replay-persist").checked) upd(RP.persist[w][h][ti]);
+  }
+  const padY = (mx - mn) * 0.12 + 0.02; mn -= padY; mx += padY;
+  const Y = (v) => yBot - (v - mn) / (mx - mn) * (yBot - yTop);
+  // gridlines: 0 (anchor POC) + unit levels
+  x.font = "10px monospace";
+  const levels = ti < 5 ? [-2,-1,0,1,2] : [-1,0,1];
+  for (const lv of levels) {
+    if (lv < mn || lv > mx) continue;
+    x.strokeStyle = lv === 0 ? "rgba(79,140,255,.5)" : "#1e2941";
+    x.setLineDash(lv === 0 ? [] : [3,4]);
+    x.beginPath(); x.moveTo(x0, Y(lv)); x.lineTo(x0 + plotW, Y(lv)); x.stroke(); x.setLineDash([]);
+    x.fillStyle = lv === 0 ? "#4f8cff" : "#55617a";
+    x.fillText(tv(lv), x0 - 84, Y(lv) + 3);
+  }
+  // context POC path (offsets from this window's anchor POC; ctx[63] = 0)
+  x.strokeStyle = "#33415e"; x.lineWidth = 1.6;
+  x.beginPath();
+  for (let j=0;j<64;j++) {
+    const px = x0 + j*(xAnchor - x0)/63;
+    j ? x.lineTo(px, Y(ctx[j])) : x.moveTo(px, Y(ctx[j]));
+  }
+  x.stroke();
+  x.fillStyle = "#55617a";
+  x.fillText("← 64-minute context (POC offset)", x0, 22);
+  x.fillText("oldest", x0, 344); x.fillText("anchor bar", xAnchor - 30, 344);
+  // anchor line
+  x.setLineDash([3,3]); x.strokeStyle = "#4f8cff"; x.lineWidth = 1;
+  x.beginPath(); x.moveTo(xAnchor, yTop - 6); x.lineTo(xAnchor, yBot + 6); x.stroke(); x.setLineDash([]);
+  // forecast fan: horizons 1..8
+  x.fillStyle = "rgba(79,140,255,.25)";
+  x.beginPath();
+  for (let h=0;h<8;h++) { const px = xAnchor + (h+1)*fw; h ? x.lineTo(px, Y(RP.q10[w][h][ti])) : x.moveTo(px, Y(RP.q10[w][h][ti])); }
+  for (let h=7;h>=0;h--) x.lineTo(xAnchor + (h+1)*fw, Y(RP.q90[w][h][ti]));
+  x.closePath(); x.fill();
+  // median
+  x.strokeStyle = "#4f8cff"; x.lineWidth = 2.2; x.beginPath();
+  for (let h=0;h<8;h++) { const px = xAnchor + (h+1)*fw, py = Y(RP.q50[w][h][ti]); h ? x.lineTo(px,py) : x.moveTo(px,py); }
+  x.stroke();
+  // actual
+  x.strokeStyle = "#f2b544"; x.lineWidth = 2.2; x.beginPath();
+  let started = false;
+  for (let h=0;h<8;h++) {
+    if (!RP.masks[w][h][ti]) { started = false; continue; }
+    const px = xAnchor + (h+1)*fw, py = Y(RP.targets[w][h][ti]);
+    started ? x.lineTo(px,py) : (x.moveTo(px,py), started = true);
+  }
+  x.stroke();
+  // persistence (flat: last observed value, held for all horizons)
+  if ($("#replay-persist").checked) {
+    x.strokeStyle = "rgba(138,147,168,.85)"; x.lineWidth = 1.4; x.setLineDash([5,4]);
+    const pv = RP.persist[w][0][ti];
+    x.beginPath(); x.moveTo(xAnchor + fw, Y(pv)); x.lineTo(xAnchor + 8*fw, Y(pv)); x.stroke();
+    x.setLineDash([]);
+  }
+  x.fillStyle = "#55617a"; x.font = "10px monospace";
+  x.fillText("next 8 minutes →", xAnchor + 6, 22);
+  x.fillText("+1", xAnchor + fw - 6, 344); x.fillText("+8", xAnchor + 8*fw - 10, 344);
+  // right panel: window info + live numbers
+  const rx = x0 + plotW + 46;
+  x.fillStyle = "#7d8aa3"; x.font = "12px sans-serif";
+  x.fillText("window " + (w+1) + " / " + RP.timestamps.length, rx, yTop + 4);
+  x.font = "11px monospace"; x.fillStyle = "#55617a";
+  x.fillText("context ends " + ts2t(RP.timestamps[w]) + " UTC", rx, yTop + 24);
+  x.fillText("target: " + qnames[ti], rx, yTop + 42);
+  x.fillStyle = "#dbe4f3"; x.font = "11px monospace";
+  const mae = rState.seen ? rState.sumAbs/rState.seen : null;
+  x.fillText("accumulated q50 MAE", rx, yTop + 76);
+  x.font = "17px monospace"; x.fillStyle = mae != null ? "#4f8cff" : "#55617a";
+  x.fillText(mae != null ? mae.toFixed(4) : "—", rx, yTop + 96);
+  x.font = "11px monospace"; x.fillStyle = "#7d8aa3";
+  x.fillText("central-80% coverage", rx, yTop + 124);
+  const cov = rState.seen ? rState.sumCover/rState.seen : null;
+  x.font = "17px monospace";
+  x.fillStyle = cov != null && Math.abs(cov-0.8) < 0.1 ? "#22d3a5" : (cov != null ? "#f2b544" : "#55617a");
+  x.fillText(cov != null ? pct(cov) : "—", rx, yTop + 144);
+  x.font = "11px monospace"; x.fillStyle = "#55617a";
+  x.fillText(rState.seen + " target observations", rx, yTop + 168);
+  // progress bar
+  x.fillStyle = "#1e2941"; x.fillRect(rx, yTop + 186, 200, 6);
+  x.fillStyle = "#4f8cff"; x.fillRect(rx, yTop + 186, 200 * (w+1)/RP.timestamps.length, 6);
+  // stats cards
+  const cards = [
+    ["q50 forecast @ +1 / +8", tv(RP.q50[w][0][ti]) + " → " + tv(RP.q50[w][7][ti])],
+    ["actual @ +1 / +8", tv(RP.targets[w][0][ti]) + " → " + tv(RP.targets[w][7][ti])],
+    ["band width @ +1 / +8", tv(RP.q90[w][0][ti] - RP.q10[w][0][ti]) + " → " + tv(RP.q90[w][7][ti] - RP.q10[w][7][ti])],
+    ["actual inside band", actualInsideCt(w, ti) + "/8 horizons"],
+  ];
+  $("#replay-cards").innerHTML = cards.map(([a,b]) =>
+    '<div class="card"><div class="big" style="font-size:16px">' + b + '</div><div class="lbl">' + a + '</div></div>').join("");
+  // history charts
+  drawHist("cv-replay-mae", rState.maeHist, "#4f8cff", "MAE");
+  drawHist("cv-replay-cover", rState.covHist, "#22d3a5", "coverage", 0.8);
+}
+function actualInsideCt(w, ti) {
+  let c = 0;
+  for (let h=0;h<8;h++) {
+    if (!RP.masks[w][h][ti]) continue;
+    const a = RP.targets[w][h][ti];
+    if (a >= RP.q10[w][h][ti] && a <= RP.q90[w][h][ti]) c++;
+  }
+  return c;
+}
+function drawHist(id, arr, color, what, refLine) {
+  const x = canvas(id, 560, 220); if (!x) return;
+  x.clearRect(0,0,560,220);
+  if (!arr.length) {
+    x.fillStyle = "#55617a"; x.font = "11px sans-serif";
+    x.fillText("press Play to accumulate…", 20, 110); return;
+  }
+  const x0 = 30, y0 = 14, W = 560, H = 220;
+  const vals = arr.filter(v => v != null);
+  let mn = Math.min(...vals), mx = Math.max(...vals);
+  if (refLine != null) { mn = Math.min(mn, refLine*0.94); mx = Math.max(mx, refLine*1.06); }
+  const pad = (mx-mn)*0.15 + 1e-6; mn -= pad; mx += pad;
+  const n = arr.length;
+  x.strokeStyle = "#1e2941"; x.beginPath(); x.moveTo(x0, 220-30); x.lineTo(W-12, 220-30); x.stroke();
+  if (refLine != null) {
+    const ry = y0 + (1 - (refLine-mn)/(mx-mn)) * (H-58);
+    x.strokeStyle = "rgba(242,181,68,.7)"; x.setLineDash([4,4]);
+    x.beginPath(); x.moveTo(x0, ry); x.lineTo(W-12, ry); x.stroke(); x.setLineDash([]);
+    x.fillStyle = "#f2b544"; x.font = "9px monospace"; x.fillText("nominal 80%", W-92, ry-3);
+  }
+  x.strokeStyle = color; x.lineWidth = 1.6; x.beginPath();
+  let started = false;
+  for (let i=0;i<n;i++) {
+    const v = arr[i]; if (v == null) { started = false; continue; }
+    const px = x0 + (i/(Math.max(n-1,1)))*(W-42), py = y0 + (1-(v-mn)/(mx-mn))*(H-58);
+    started ? x.lineTo(px,py) : (x.moveTo(px,py), started = true);
+  }
+  x.stroke();
+  const last = vals[vals.length-1];
+  x.fillStyle = color; x.font = "11px monospace";
+  x.fillText(what + " = " + (what === "coverage" ? pct(last) : last.toFixed(4)), x0, H-8);
+  x.fillStyle = "#55617a";
+  x.fillText(Math.round(n) + " windows", W-90, H-8);
+}
+
+// ---------- TRAINING & TESTING ----------
+function drawTraining() {
+  $("#tr-protocol").innerHTML = [
+    ["Objective", "weighted multi-horizon pinball (q10/q50/q90)"],
+    ["Targets", "7 targets × 8 horizons × 3 quantiles"],
+    ["Horizon weighting", "1/√h"],
+    ["Optimizer / schedule", "AdamW · cosine"],
+    ["Seed selection", "by validation loss only (seed 17)"],
+    ["Split", "purged chronological, 72-bar purge"],
+  ].map(([a,b]) => "<dt>"+a+"</dt><dd>"+b+"</dd>").join("");
+  $("#tr-data").innerHTML = [
+    ["Dataset", "Binance BTCUSDT spot 1-minute footprints"],
+    ["Study window", "2024-01-01 .. 2024-01-14 (14 days)"],
+    ["Bars / price rows", "20,160 / 357,676"],
+    ["Valid windows", "20,089 (13,990 / 2,869 / 2,942)"],
+    ["Max rows per bar", "1024 hard safety bound"],
+    ["Row size", "$2.50 price grid"],
+  ].map(([a,b]) => "<dt>"+a+"</dt><dd>"+b+"</dd>").join("");
+  // seeds
+  const rows = F.seeds.map(s =>
+    '<tr' + (s.seed === 17 ? ' class="hl"' : '') + '><td>seed ' + s.seed + (s.seed===17 ? ' ★' : '') +
+    '</td><td>' + s.epoch + '</td><td>' + s.val.toFixed(6) + '</td><td>' + s.test.toFixed(6) +
+    '</td><td>' + s.mae.toFixed(6) + '</td><td>' + pct(s.coverage, 2) + '</td><td>' + pct(s.poc_sign, 2) + '</td></tr>');
+  $("#tr-seeds").innerHTML = '<tr><th>run</th><th>best epoch</th><th>val pinball</th><th>test pinball</th><th>pooled q50 MAE</th><th>central-80%</th><th>POC sign</th></tr>' + rows.join("");
+  // baseline table (deltas follow the manuscript convention: headline 7.25% = (per−fdt)/per, 2.68% = (fdt−ridge)/ridge)
+  const fdtV = F.pooled_mae.fdt, perV = F.pooled_mae.persistence, ridV = F.pooled_mae.ridge;
+  $("#tr-baseline").innerHTML =
+    '<tr><th>model</th><th>pooled q50 MAE</th><th>vs FDT-N</th><th>vs persistence</th></tr>' +
+    '<tr class="hl"><td>FDT-N (seed 17)</td><td>' + fdtV.toFixed(6) + '</td><td>—</td><td>−' + pct((perV - fdtV)/perV, 2) + '</td></tr>' +
+    '<tr><td>zero-change persistence</td><td>' + perV.toFixed(6) + '</td><td>+' + pct((perV - fdtV)/fdtV, 2) + '</td><td>—</td></tr>' +
+    '<tr><td>train-only direct ridge</td><td>' + ridV.toFixed(6) + '</td><td>−' + pct((fdtV - ridV)/ridV, 2) + '</td><td>−' + pct((perV - ridV)/perV, 2) + '</td></tr>';
+  drawBaselineChart();
+  drawByTarget();
+  drawByHorizon();
+  drawCoverage();
+  $("#tr-runtime").innerHTML = [
+    ["Export", "ONNX 1.22.0 (CPU)"],
+    ["Parity vs PyTorch", "max " + F.onnx_parity.max_abs.toExponential(2) + " · mean " + F.onnx_parity.mean_abs.toExponential(2)],
+    ["Latency p50 / p95 / p99", F.cpu_latency_ms.p50.toFixed(2) + " / " + F.cpu_latency_ms.p95.toFixed(2) + " / " + F.cpu_latency_ms.p99.toFixed(2) + " ms"],
+    ["This file's restore parity", "0.0 (fixture) · " + ME.restore_parity_random_windows_max.toExponential(1) + " (random)"],
+    ["Parameter count", ME.parameter_count.toLocaleString()],
+    ["Checkpoint", "seed 17 · epoch " + ME.checkpoint_epoch],
+  ].map(([a,b]) => "<dt>"+a+"</dt><dd>"+b+"</dd>").join("");
+}
+function drawBaselineChart() {
+  const x = canvas("cv-baseline", 1180, 260); if (!x) return;
+  x.clearRect(0,0,1180,260);
+  const bars = [
+    ["FDT-N (frozen test)", F.pooled_mae.fdt, "#4f8cff"],
+    ["persistence", F.pooled_mae.persistence, "#8a93a8"],
+    ["direct ridge", F.pooled_mae.ridge, "#22d3a5"],
+  ];
+  const x0 = 90, bw = 250, maxV = 0.27;
+  bars.forEach(([lab, v, col], i) => {
+    const hpx = (v/maxV) * 170;
+    const bx = x0 + i*(bw+140);
+    x.fillStyle = col;
+    x.fillRect(bx, 220 - hpx, bw, hpx);
+    x.fillStyle = "#dbe4f3"; x.font = "20px monospace";
+    x.fillText(v.toFixed(6), bx, 220 - hpx - 10);
+    x.fillStyle = "#7d8aa3"; x.font = "13px sans-serif";
+    x.fillText(lab, bx, 246);
+  });
+  x.strokeStyle = "#33415e"; x.setLineDash([4,4]);
+  const ry = 220 - (F.pooled_mae.fdt/maxV)*170;
+  x.beginPath(); x.moveTo(x0, ry); x.lineTo(x0 + 3*(bw+140), ry); x.stroke(); x.setLineDash([]);
+  x.fillStyle = "#55617a"; x.font = "10px monospace";
+  x.fillText("FDT-N level", x0 + 3*(bw+140) - 86, ry - 4);
+}
+function drawByTarget() {
+  const x = canvas("cv-bytarget", 560, 300); if (!x) return;
+  x.clearRect(0,0,560,300);
+  const keys = Object.keys(F.per_target_mae);
+  const bw = (560 - 70) / keys.length;
+  const maxV = 0.46;
+  keys.forEach((k, i) => {
+    const d = F.per_target_mae[k];
+    const draw = (v, col, off, wfrac) => {
+      const hpx = (v/maxV)*230;
+      x.fillStyle = col;
+      x.fillRect(40 + i*bw + off, 272 - hpx, bw*wfrac, hpx);
+    };
+    draw(d.persistence, "rgba(138,147,168,.55)", 0, 0.3);
+    draw(d.fdt, "#4f8cff", bw*0.3, 0.36);
+    draw(d.ridge, "rgba(34,211,165,.6)", bw*0.66, 0.3);
+  });
+  x.fillStyle = "#55617a"; x.font = "9px monospace";
+  keys.forEach((k,i) => { if (i%1===0) x.fillText(k.replace("_offset","").replace("log_","").replace("fraction","frac").slice(0,10), 38 + i*bw, 290); });
+  x.fillStyle = "#7d8aa3"; x.font = "10px sans-serif";
+  x.fillText("grey=persistence blue=FDT-N green=ridge", 40, 12);
+}
+function drawByHorizon() {
+  const x = canvas("cv-byhorizon", 560, 300); if (!x) return;
+  x.clearRect(0,0,560,300);
+  const keys = Object.keys(F.per_horizon_mae);
+  const bw = (560 - 70) / 8;
+  const maxV = 0.34;
+  keys.forEach((k, i) => {
+    const d = F.per_horizon_mae[k];
+    const v1 = d.persistence, v2 = d.fdt, v3 = d.ridge;
+    const h1 = (v1/maxV)*230, h2 = (v2/maxV)*230, h3 = (v3/maxV)*230;
+    x.fillStyle = "rgba(138,147,168,.55)"; x.fillRect(40 + i*bw, 272-h1, bw*0.28, h1);
+    x.fillStyle = "#4f8cff"; x.fillRect(40 + i*bw + bw*0.32, 272-h2, bw*0.34, h2);
+    x.fillStyle = "rgba(34,211,165,.6)"; x.fillRect(40 + i*bw + bw*0.70, 272-h3, bw*0.28, h3);
+  });
+  x.fillStyle = "#55617a"; x.font = "10px monospace";
+  for (let i=0;i<8;i++) x.fillText("+" + (i+1), 44 + i*bw, 290);
+  x.fillStyle = "#7d8aa3"; x.font = "10px sans-serif";
+  x.fillText("grey=persistence blue=FDT-N green=ridge · error grows with horizon", 40, 12);
+}
+function drawCoverage() {
+  const x = canvas("cv-coverage", 560, 240); if (!x) return;
+  x.clearRect(0,0,560,240);
+  // real live central-80% coverage per target (all 4,249 out-of-sample windows)
+  const keys = Object.keys(M.per_target);
+  const bw = (560-90)/keys.length;
+  const y0 = 196, top = 36, y80 = y0 - (0.8 - 0.6) * ((y0-top)/0.3);  // scale 0.6..0.9
+  const Y = (v) => y0 - (v - 0.6) * ((y0 - top) / 0.3);
+  // nominal line first
+  x.strokeStyle = "rgba(242,181,68,.8)"; x.setLineDash([4,4]);
+  x.beginPath(); x.moveTo(46, Y(0.8)); x.lineTo(548, Y(0.8)); x.stroke(); x.setLineDash([]);
+  x.fillStyle = "#f2b544"; x.font = "10px monospace"; x.fillText("nominal 80%", 478, Y(0.8) - 4);
+  keys.forEach((k, i) => {
+    const c = M.per_target[k].central_80_coverage;
+    const good = Math.abs(c - 0.8) < 0.025;
+    x.fillStyle = good ? "#22d3a5" : "#f2b544";
+    x.fillRect(48 + i*bw, Y(c), bw*0.62, y0 - Y(c));
+    x.fillStyle = "#55617a"; x.font = "9px monospace";
+    x.fillText(k.replace("_offset","").replace("log_volume_relative","log vol").replace("delta_fraction","δ frac").slice(0,10), 44 + i*bw, 214);
+    x.fillStyle = good ? "#22d3a5" : "#f2b544";
+    x.fillText(pct(c), 46 + i*bw, Y(c) - 4);
+  });
+  x.strokeStyle = "#1e2941"; x.beginPath(); x.moveTo(40, y0); x.lineTo(552, y0); x.stroke();
+  x.fillStyle = "#7d8aa3"; x.font = "10px sans-serif";
+  x.fillText("central-80% coverage by target (live, 4,249 windows)", 40, 14);
+}
+
+// ---------- boot ----------
+buildFlowNav();
+replayInit();
+replayDraw();
+window.addEventListener("resize", () => {
+  const t = document.querySelector("section.tab.on").id;
+  if (t === "tab-flow") drawFlow();
+  if (t === "tab-replay") replayDraw();
+  if (t === "tab-training") drawTraining();
+});
+</script>
+</body>
+</html>
