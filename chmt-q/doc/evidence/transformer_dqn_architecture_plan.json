@@ -1,0 +1,247 @@
+{
+  "schema_version": 1,
+  "plan_id": "chmt-q-transformer-dqn-research-v1",
+  "status": "proposed_not_implemented_not_validated",
+  "decision": "Use DQN only as a gated policy layer after a supervised return-aware encoder demonstrates real out-of-sample signal.",
+  "non_claims": [
+    "DQN does not repair the current transformer's forecast accuracy.",
+    "DQN does not create an economic edge when the state contains no usable information.",
+    "The existing checkpoint is not approved for live trading or capital allocation.",
+    "No profitability is claimed until a replacement sealed holdout and live shadow test pass."
+  ],
+  "prerequisite_gates": [
+    {
+      "id": "qualified_data",
+      "condition": "At least 240 qualified pre-holdout sessions, or enough for five full rolling folds, with executable bid/ask, independent receive time, exchange sequence/checksum evidence, effective-dated metadata, and measured fee/funding inputs."
+    },
+    {
+      "id": "preprocessing",
+      "condition": "Tick-aware sparse transforms, continuous warm-up, strict feature cutoff, and under 1% clipping per valid feature."
+    },
+    {
+      "id": "supervised_signal",
+      "condition": "Return-distribution score improves at least 5% over the strongest registered simple baseline across every development fold and seed, with directional MCC above 0.10."
+    },
+    {
+      "id": "simple_policy",
+      "condition": "A frozen cost-aware threshold or tree policy is non-negative after base costs across development folds; otherwise stop before RL."
+    },
+    {
+      "id": "chronology",
+      "condition": "Use nested rolling folds with horizon-aware purge and embargo; fit scalers, encoders, replay, reward normalization, and policy selection inside each training fold only."
+    }
+  ],
+  "validation_design": {
+    "folds": "Pre-register at least five rolling anchored folds with at least 120 prior train sessions, 20 chronological selection sessions, horizon-aware purge and embargo equal to the maximum label/reward/n-step/holding reach, and 20 disjoint untouched test sessions per fold; no replay transition or episode crosses a boundary. Follow with one physically sealed replacement holdout.",
+    "seeds": "Use at least five Transformer seeds and ten DQN seeds for the finalist; report every seed and fold, not only the champion.",
+    "fold_locality": "Generate Transformer states fold-locally or out-of-fold. Validation, policy-selection, and holdout transitions never enter replay, normalization, early stopping, or target construction.",
+    "checkpoint_rule": "The existing 2.09M checkpoint may define an architecture candidate but its weights cannot initialize a fold whose validation or test dates it previously saw; retrain weights fold-locally.",
+    "statistics": "Seeds are not independent market samples. Aggregate paired daily and weekly results inside folds and use block-bootstrap confidence intervals.",
+    "trial_control": "Pre-register seeds, the trial budget, ablations, selection metric, costs, latency, fills, reward coefficients, and one champion-selection rule before confirmation; retain failed trials."
+  },
+  "architecture": {
+    "data_layer": {
+      "decision_interval_minutes": 5,
+      "minimum_entry_latency_minutes": 1,
+      "inputs": [
+        "continuous bars and warm-up state",
+        "L1 and sequence-qualified L2 microstructure",
+        "spread, depth, imbalance, realized volatility, and data-quality flags",
+        "fees, funding, and effective instrument metadata"
+      ]
+    },
+    "supervised_encoder": {
+      "topology": "The CHMT-Q modality topology is retained only as a candidate, with a compact 0.2-0.5M parameter version as a required ablation against the current 2.09M architecture.",
+      "training": "Retrain weights inside every rolling fold on executable-return distributions; generate policy states fold-locally or out-of-fold and keep footprint targets at low auxiliary weight.",
+      "primary_heads": [
+        "long executable net-return q10/q50/q90",
+        "short executable net-return q10/q50/q90",
+        "future volatility and downside risk"
+      ],
+      "auxiliary_heads": [
+        "POC, volume, and delta only when an ablation proves incremental value"
+      ],
+      "removed_head": "Constant buy/sell presence classification"
+    },
+    "policy_state_adapter": {
+      "market_state": [
+        "transformer latent representation",
+        "supervised return quantiles",
+        "volatility and downside forecasts",
+        "spread, liquidity, funding, time, and data-quality features"
+      ],
+      "portfolio_state": [
+        "current target position",
+        "entry price and unrealized PnL",
+        "time in position",
+        "equity and current drawdown",
+        "recent turnover and execution cost",
+        "remaining risk budget"
+      ],
+      "normalization": "Fit on the training partition only; no reward, state, or portfolio statistic may use future or validation data."
+    },
+    "dqn_policy": {
+      "initial_algorithm": "Dueling Double DQN with target network, Huber TD loss, uniform day-balanced trajectory replay, and short multi-step returns.",
+      "optional_ablation": "Quantile Regression DQN and conservative Q regularization only after the initial DQN and simple policies pass identical folds, seeds, and costs.",
+      "encoder_update_policy": "Freeze the encoder first. Unfreeze only the top block at a lower learning rate if paired folds and seeds improve without degrading the supervised heads.",
+      "rejected_training_mode": "Do not train the full transformer and DQN jointly from scratch on the current one-month corpus.",
+      "action_confidence": "Abstain to the current target or flat unless the lower-confidence Q advantage clears a frozen reserve; stale, out-of-distribution, or risk-breach states force flat."
+    },
+    "actions": {
+      "semantics": "Actions are target positions, not raw market orders.",
+      "values": [
+        {
+          "id": -1,
+          "name": "SELL_SHORT",
+          "target_position": -1.0
+        },
+        {
+          "id": 0,
+          "name": "FLAT",
+          "target_position": 0.0
+        },
+        {
+          "id": 1,
+          "name": "BUY_LONG",
+          "target_position": 1.0
+        }
+      ],
+      "execution_rule": "Trade only the difference between the selected target and current position. Re-selecting the current target is the no-trade/hold outcome.",
+      "why_not_buy_sell_hold_commands": "A command-style HOLD cannot also represent closing to flat; target positions make transitions and turnover unambiguous."
+    },
+    "environment": {
+      "simulator_class": "Exogenous historical counterfactual simulator at fixed small notional, not logged-behavior offline RL. The selected action changes only portfolio state, never the recorded market path.",
+      "transition": "At each five-minute decision, observe only information available at cutoff, execute the target-position change after frozen latency against executable bid/ask, then mark equity at the next decision.",
+      "episode_length": "Use contiguous multi-day blocks; carry state across UTC boundaries and force-close only at episode end with the closing cost charged.",
+      "market_impact_scope": "Initial research assumes fixed small notional and exogenous market data; a separate capacity/impact gate is mandatory before any capital request.",
+      "risk_limits": [
+        "maximum absolute position 1x",
+        "no pyramiding or hidden leverage",
+        "action masks for stale or invalid market state",
+        "predeclared drawdown and daily-loss kill switches",
+        "forced close and cost reconciliation at episode end"
+      ]
+    },
+    "reward": {
+      "formula": "r_t = log(E_{t+1}/E_t) - lambda_dd * max(0, DD_{t+1}-DD_t) - lambda_turn * abs(p_t-p_{t-1})",
+      "equity_accounting": "E is executable liquidation equity and charges bid/ask, fees, frozen slippage, funding, realized PnL, mark-to-market PnL, and terminal closing cost exactly once.",
+      "evaluation_rule": "Select and report raw net PnL and risk separately from shaped reward. Any drawdown or turnover shaping coefficient is pre-registered, and accounting tests must prove it does not replace or duplicate ledger costs.",
+      "normalization": "Normalize from training-only reward statistics and do not clip away basis-point differences.",
+      "forbidden_rewards": [
+        "raw forecast accuracy",
+        "future maximum price",
+        "unrealized PnL without eventual closing cost",
+        "validation or holdout performance"
+      ]
+    }
+  },
+  "training_program": [
+    {
+      "phase": 0,
+      "name": "Environment certification",
+      "work": "Prove timestamp causality, action transitions, accounting identity, cost reconciliation, deterministic replay, and forced-close behavior with synthetic fixtures.",
+      "exit": "Zero causal/accounting violations."
+    },
+    {
+      "phase": 1,
+      "name": "Supervised encoder",
+      "work": "Train direct executable-return and risk heads inside at least five nested rolling folds with purge and embargo; compare recent, seasonal, linear, tree, TCN, and compact-transformer baselines across at least five seeds.",
+      "exit": "All prerequisite supervised-signal gates pass."
+    },
+    {
+      "phase": 2,
+      "name": "Frozen-encoder DQN",
+      "work": "Train only the state adapter and DQN head on fold-local or out-of-fold states from training folds. Select on a separate chronological policy block and evaluate the finalist across at least ten DQN seeds.",
+      "exit": "Paired raw net-PnL improvement over the best frozen non-RL policy across folds and seeds."
+    },
+    {
+      "phase": 3,
+      "name": "Controlled encoder fine-tune",
+      "work": "Optionally unfreeze the top transformer block with a lower learning rate; retain a frozen-encoder control and supervised-loss guardrail.",
+      "exit": "RL utility improves without forecast-score regression or instability."
+    },
+    {
+      "phase": 4,
+      "name": "Calibration and policy freeze",
+      "work": "Freeze action thresholds, risk limits, costs, latency, reward coefficients, and model selection before any final holdout access.",
+      "exit": "Immutable policy manifest and reproducible checkpoint."
+    },
+    {
+      "phase": 5,
+      "name": "Replacement holdout",
+      "work": "Open one physically sealed later period of at least 60 sessions exactly once, with hashes, access logs, minimum activity rules, and a blind extension rule; do not reuse Jun 25-30 as pristine evidence.",
+      "exit": "All forecast, policy, cost, risk, and stability gates pass without retuning."
+    },
+    {
+      "phase": 6,
+      "name": "Live shadow",
+      "work": "Run the identical frozen policy with learning disabled, live timestamps, order-book state, fail-flat controls, and slippage reconciliation before any capital request or order route.",
+      "exit": "At least 60 shadow days with no causal, accounting, or risk-control breach."
+    }
+  ],
+  "required_baselines_and_ablations": [
+    "always flat, always long, always short, buy-and-hold, and turnover-matched random target-position policies",
+    "recent-return and hour-conditioned policies",
+    "cost-aware supervised threshold and tree policy",
+    "DQN without transformer latent state",
+    "frozen encoder versus top-block fine-tune",
+    "bars only, bars plus L1, and bars plus L1 plus L2",
+    "current 2.09M encoder versus compact 0.2-0.5M encoder",
+    "one-step versus multi-step DQN targets",
+    "zero-cost accounting sanity check versus frozen base and stress costs",
+    "oracle upper bound used only as a diagnostic and never as a trainable baseline",
+    "champion comparison corrected for the pre-registered number of trials"
+  ],
+  "negative_controls": [
+    "shuffle rewards within training days",
+    "shuffle transformer states within training days",
+    "randomize action labels",
+    "inject a deliberate future-leak sentinel and require the causal audit to reject it",
+    "train on one regime and verify failure is detected on another",
+    "verify that validation and replacement holdout data never enter replay"
+  ],
+  "go_no_go_gates": [
+    {
+      "gate": "forecast",
+      "condition": "At least 5% paired proper-score gain over the strongest simple baseline with a 95% lower confidence bound above zero, positive in at least four of five folds, directional MCC above 0.10, and useful interval coverage and sharpness."
+    },
+    {
+      "gate": "incremental_rl_value",
+      "condition": "DQN beats the best frozen non-RL policy in paired block-bootstrap raw net PnL with a 95% lower confidence bound above zero; if position state, switching cost, duration, and risk state add no sequential value, select the supervised policy instead."
+    },
+    {
+      "gate": "economics",
+      "condition": "Positive base- and stress-cost net return, with estimated gross edge at least 3x frozen all-in round-trip cost."
+    },
+    {
+      "gate": "risk",
+      "condition": "Max drawdown, downside tail, daily loss, exposure, and turnover remain inside predeclared portfolio limits in every fold and seed."
+    },
+    {
+      "gate": "stability",
+      "condition": "Across at least five rolling folds, five Transformer seeds, and ten DQN seeds, at least four of five fold medians and 80% of seed-fold runs are profitable, no fold or day supplies over 30% of profit, and supervised score does not regress after fine-tuning."
+    },
+    {
+      "gate": "controls",
+      "condition": "Random, shuffled-state, and shuffled-reward controls fail; always-flat and simple-policy comparisons are reported."
+    },
+    {
+      "gate": "confirmation",
+      "condition": "One pre-registered champion passes at least 60 physically sealed untouched days once with no retuning, followed by at least 60 live shadow days with learning disabled."
+    }
+  ],
+  "primary_metrics": {
+    "supervised": [
+      "return-distribution proper score",
+      "directional MCC",
+      "calibration and interval width"
+    ],
+    "policy": [
+      "net return and net utility after frozen costs",
+      "maximum drawdown and downside tail",
+      "turnover, exposure, action occupancy, and break-even cost",
+      "paired daily and weekly block-bootstrap confidence intervals",
+      "performance by fold, seed, day, and regime"
+    ]
+  }
+}

@@ -1,0 +1,135 @@
+{
+  "bar_feature_names": [
+    "poc_offset_from_anchor",
+    "buy_poc_offset",
+    "sell_poc_offset",
+    "volume_centroid_offset",
+    "buy_centroid_offset",
+    "sell_centroid_offset",
+    "low_gap",
+    "high_gap",
+    "value_area_low_gap",
+    "value_area_high_gap",
+    "log_volume_relative",
+    "buy_fraction",
+    "sell_fraction",
+    "delta_fraction",
+    "cumulative_delta_change",
+    "stacked_buy_fraction",
+    "stacked_sell_fraction",
+    "row_count_fraction",
+    "feed_quality",
+    "minute_sin",
+    "minute_cos",
+    "weekday_sin",
+    "weekday_cos"
+  ],
+  "checkpoint_epoch": 21,
+  "checkpoint_sha256": "9d2cf525971f81fc93ca9ed97103cffb29203d7fd59edea5bd92d0e1480e124a",
+  "checkpoint_validation_loss": 0.11263367533683777,
+  "coordinate": {
+    "instrument_key": "BTCUSDT",
+    "interval_seconds": 60,
+    "row_size": 2.5,
+    "source": "Binance"
+  },
+  "creates_order_signals": false,
+  "encoding_config": {
+    "cumulative_delta_scale": 4.0,
+    "gap_scale_ticks": 32.0,
+    "horizon_bars": 8,
+    "imbalance_ratio": 3.0,
+    "interval_seconds": 60,
+    "log_volume_scale": 4.0,
+    "lookback_bars": 64,
+    "max_rows": 1024,
+    "price_scale_ticks": 64.0,
+    "quantity_scale": 1000.0,
+    "row_size": 2.5
+  },
+  "environment": {
+    "numpy": "2.1.2",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python": "3.12.6",
+    "torch": "2.5.1+cu121"
+  },
+  "lineage": {
+    "dataset": {
+      "file": "btcusdt-1m-fourteen-days.npz",
+      "sha256": "d83f78894af08b65123d2bf9f4fbef8ca28e901a552d3af2c61f6e37513bf6cc"
+    },
+    "dataset_manifest": {
+      "file": "btcusdt-1m-fourteen-days.manifest.json",
+      "sha256": "b88d89565febb97dbe56151fe447e3952fa844b8c433ecb86cb747e11e4ce412"
+    },
+    "training_results": {
+      "file": "results.json",
+      "sha256": "746403a05790753943b8c22f615f097c8dc397e413be49f35ea553b82e0cbd0a"
+    }
+  },
+  "maximum_horizon_bars": 8,
+  "minimum_history_bars": 64,
+  "model_config": {
+    "attention_heads": 4,
+    "d_model": 64,
+    "decoder_layers": 2,
+    "dropout": 0.1,
+    "feedforward_multiplier": 3,
+    "row_queries": 4,
+    "temporal_layers": 3
+  },
+  "model_kind": "fdt-n-footprint-distribution-transformer",
+  "model_version": "9d2cf525971f81fc",
+  "onnx_sha256": "adce8cd39312bf3ad1389a23ed5ca24d6f47a7f58dbb26d76ae7d54af1011af7",
+  "parameter_count": 371861,
+  "parity": {
+    "cpu_latency_ms": {
+      "p50": 11.40990003477782,
+      "p95": 14.64057001285255,
+      "p99": 17.239789969753467,
+      "runs": 50
+    },
+    "maximum_absolute_error": 2.384185791015625e-07,
+    "mean_absolute_error": 5.1666226852375985e-08,
+    "onnx_version": "1.22.0",
+    "onnxruntime_version": "1.28.0",
+    "passed": true,
+    "provider": "CPUExecutionProvider",
+    "sample": {
+      "p95_window_max_rows": 187.0,
+      "selection": "earliest_window_with_minimum_width_at_or_above_p95",
+      "valid_windows": 20089,
+      "window_max_rows": 187
+    },
+    "tolerance": 0.0001
+  },
+  "quantiles": [
+    0.1,
+    0.5,
+    0.9
+  ],
+  "row_feature_names": [
+    "price_offset_from_poc",
+    "buy_share",
+    "sell_share",
+    "total_share",
+    "delta_share",
+    "log_buy_ratio",
+    "log_sell_ratio",
+    "bid_imbalance",
+    "ask_imbalance",
+    "zero_bid",
+    "zero_ask"
+  ],
+  "runtime_status": "shadow-only-research",
+  "schema_version": 2,
+  "target_names": [
+    "poc_offset",
+    "low_offset",
+    "high_offset",
+    "buy_poc_offset",
+    "sell_poc_offset",
+    "log_volume_relative",
+    "delta_fraction"
+  ]
+}

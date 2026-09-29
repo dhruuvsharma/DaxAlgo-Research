@@ -1,0 +1,128 @@
+{
+  "protocol_version": 1,
+  "frozen_utc": "2026-08-09T17:36:31.829Z",
+  "status": "frozen after a July 1 acquisition/schema smoke test and before bulk acquisition, target compilation, model fitting, or July-August scoring",
+  "freeze_evidence": "protocol-july-august-2026.sha256",
+  "pre_freeze_access": "The downloader read first records from July 1 training-period archives only to validate container/schema/timestamp shape. No validation or development-forward archive payload, compiled target, or score was inspected.",
+  "study_name": "CHMT-Q Tiny BTC-USDT July-August 2026 development pilot",
+  "purpose": "Test whether model compression preserves five-target footprint quantile forecasting.",
+  "claim_boundary": "Development evidence only. No executable-return, action, edge, profitability, promotion, or confirmatory claim is permitted.",
+  "instrument": {
+    "venue": "OKX",
+    "instrument_id": "BTC-USDT",
+    "instrument_type": "SPOT"
+  },
+  "official_source": {
+    "landing_page": "https://www.okx.com/historical-data",
+    "trade_url_pattern": "https://static.okx.com/cdn/okex/traderecords/trades/daily/YYYYMMDD/BTC-USDT-trades-YYYY-MM-DD.zip?v=999",
+    "l2_url_pattern": "https://static.okx.com/cdn/okx/match/orderbook/pro/L2/400lv/daily/YYYYMMDD/BTC-USDT-L2orderbook-400lv-YYYY-MM-DD.tar.gz",
+    "trade_archive_timezone": "Asia/Shanghai",
+    "l2_archive_timezone": "UTC",
+    "utc_filter": "start_utc_ms <= event_time_ms < end_utc_ms",
+    "required_unique_trade_labels": "2026-07-01 through 2026-08-05 inclusive",
+    "required_unique_l2_labels": "2026-07-01 through 2026-08-04 inclusive",
+    "required_archive_count": 71
+  },
+  "partitions": {
+    "train": {
+      "start_utc": "2026-07-01",
+      "end_utc_inclusive": "2026-07-21",
+      "sessions": 21,
+      "nominal_examples": 30051
+    },
+    "validation": {
+      "start_utc": "2026-07-22",
+      "end_utc_inclusive": "2026-07-28",
+      "sessions": 7,
+      "nominal_examples": 10017
+    },
+    "development_forward": {
+      "start_utc": "2026-07-29",
+      "end_utc_inclusive": "2026-08-04",
+      "sessions": 7,
+      "nominal_examples": 10017
+    },
+    "reserved": "2026-08-05 onward is outside this experiment and may not be appended after scoring."
+  },
+  "example_contract": {
+    "decision_times_utc": "00:05 through 23:55 at one-minute cadence",
+    "day_isolation": true,
+    "bars": [64, 16],
+    "l1": [240, 16],
+    "l2": [240, 2, 10, 12],
+    "quality": [16],
+    "targets": [5, 5],
+    "raw_output": [5, 17],
+    "quantile_levels": [0.1, 0.5, 0.9],
+    "target_names": [
+      "total_poc_offset",
+      "buy_poc_offset",
+      "sell_poc_offset",
+      "log_volume_residual",
+      "delta_fraction"
+    ]
+  },
+  "model": {
+    "implementation": "experiments/chmtq_tiny/model.py",
+    "profile": "TinyConfig default",
+    "trainable_parameters": 282838,
+    "width": 64,
+    "level_width": 16,
+    "heads": 4,
+    "level_heads": 4,
+    "feed_forward_width": 128,
+    "level_feed_forward_width": 32,
+    "encoder_layers_per_branch": 1,
+    "decoder_layers": 2,
+    "dropout": 0.1
+  },
+  "training": {
+    "seeds": [17, 29, 43, 61, 89],
+    "optimizer": "AdamW",
+    "learning_rate": 0.0003,
+    "minimum_learning_rate": 0.00003,
+    "betas": [0.9, 0.95],
+    "epsilon": 1e-8,
+    "matrix_weight_decay": 0.05,
+    "micro_batch_size": 32,
+    "accumulation_steps": 4,
+    "effective_batch_size": 128,
+    "maximum_epochs": 12,
+    "early_stop_patience": 4,
+    "selection_metric": "validation weighted normalized pinball",
+    "gradient_clip_norm": 1.0,
+    "presence_loss_rule": "Set weight to zero if either class is below 1% in any training cell; do not infer the rule from validation or test."
+  },
+  "baselines": [
+    "train-only empirical marginal quantiles",
+    "causal trailing-three-complete-day quantiles",
+    "train-only hour-of-day quantiles shrunk to the global marginal",
+    "quantile ridge or DLinear on causal summary features",
+    "gradient-boosted quantile trees",
+    "matched-budget causal TCN or DeepLOB-lite"
+  ],
+  "test_open_rule": "Generate and score development-forward predictions once, after every seed and baseline has a validation-selected frozen checkpoint. Logged acquisition and integrity checks may inspect raw records before then, so this partition is not described as sealed, untouched, or unaccessed.",
+  "primary_metric": "train-normalized, mask-normalized, horizon-and-target-weighted pinball loss",
+  "required_secondary_metrics": [
+    "all 25 horizon-target pinball cells",
+    "median MAE and bias",
+    "q10-q90 coverage and width",
+    "predicted-to-realized dispersion",
+    "horizon-5 total-POC Pearson, Spearman, and sign MCC",
+    "valid-label counts",
+    "presence Brier and log loss only when both classes are evaluable",
+    "batch-one latency",
+    "nonfinite count",
+    "clipping fraction",
+    "artifact hashes"
+  ],
+  "hard_gates": [
+    "71 of 71 required source archives pass downloader size, archive, first-record schema/timestamp, and SHA-256 checks",
+    "the compiler fully streams every archive, filters the exact UTC half-open interval, deduplicates trade overlap, validates all event timestamps/order and L2 snapshot continuity, and records per-day coverage",
+    "zero cross-partition dependencies",
+    "zero accepted leakage sentinels",
+    "zero accepted nonfinite outputs",
+    "all five seeds complete",
+    "development-forward partition is opened once"
+  ]
+}
