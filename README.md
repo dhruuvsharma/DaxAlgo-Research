@@ -1,34 +1,48 @@
 # DaxAlgo Research
 
-Private research workspace: the code, experiments, and (in time) the papers and design records
-behind DaxAlgo's model work. Extracted from the product repositories on 2026-08-11 so research
-stops shipping inside an installer build.
+Research code, papers, and frozen evidence for two numeric market transformers by
+[Dhruv Sharma](https://dhruuvsharma.github.io) (dhruvsha.info@gmail.com).
 
-**This repository ships nothing.** Nothing here is referenced by, built with, or installed
-alongside DaxAlgo Terminal. Anything that graduates into the product moves to the appropriate
-edition repository and is maintained there.
+Both programmes were run under fixed, hashed protocols with chronological splits, leakage controls, and
+train-only baselines, and both are reported honestly, including where the model lost to a simpler
+baseline.
 
-## Programmes
+## Papers
 
-| Path | What |
+| Programme | Paper | LaTeX source |
+|---|---|---|
+| **FDT-N**: Footprint Distribution Transformer (Narrow) | [PDF](fdt-n/doc/reports/fdt-n-volume-footprint-transformer-final-submission.pdf) | [`fdt-n/doc/submission/`](fdt-n/doc/submission/) |
+| **CHMT-Q**: Causal Hierarchical Market Transformer with Quantiles (failure analysis) | [PDF](chmt-q/doc/publication/chmtq-arxiv-manuscript.pdf) | [`chmtq-arxiv-manuscript.tex`](chmt-q/doc/publication/chmtq-arxiv-manuscript.tex) |
+| **CHMT-Q**: architecture and tensor mechanics | [PDF](chmt-q/doc/publication/chmtq-transformer-architecture-paper.pdf) | [`chmtq-transformer-architecture-source/`](chmt-q/doc/publication/chmtq-transformer-architecture-source/) |
+
+### FDT-N in one paragraph
+
+A 372K-parameter ragged-set transformer that reads every price row of an order-flow footprint bar
+and predicts direct multi-horizon quantiles. Across three seeds, with model selection on validation
+loss only, held-out q50 MAE was 7.25% better than persistence but 2.68% worse than a train-only
+ridge baseline, which won 55 of 56 horizon-target cells. It is reported as a negative result.
+
+### CHMT-Q in one paragraph
+
+A 2.1M-parameter transformer with separate bar, L1, and L2 order-book encoders, quality-aware
+fusion, and monotone q10/q50/q90 heads, trained on content-hashed data with split-bound scalers
+and walk-forward purge/embargo. Weighted pinball loss improved 2.26% over an empirical baseline, but
+directional and cost-aware tests failed, so the model is documented as not deployable.
+
+## Layout
+
+| Path | Contents |
 |---|---|
-| `chmt-q/numeric-transformer` | CHMT-Q numeric market transformer — model, training, and evaluation code |
+| `fdt-n/volume-footprint-transformer` | FDT-N model, data pipeline, training, evaluation, and instrument/timeframe screening |
+| `fdt-n/visualizer` | Self-contained offline HTML dashboard for the seed-17 model |
+| `fdt-n/doc` | Evidence ledger, research notes, LaTeX submission, rendered PDFs, and the reviewed ONNX model |
+| `chmt-q/numeric-transformer` | CHMT-Q model, training, and evaluation code |
 | `chmt-q/research-backtest` | CHMT-Q research backtest harness |
-| `fdt-n/volume-footprint-transformer` | FDT-N volume-footprint transformer — model, training, backtest, and instrument/timeframe screening |
-
-## Where the rest of it lives
-
-Documentation, papers, and evidence ledgers for these programmes are in the private
-**DaxAlgo-Docs** repository under `chmt-q/` and `fdt-n/`. They are being consolidated here; until
-that lands, treat the Docs copies as authoritative for written material and this repository as
-authoritative for code.
-
-The Hyperion expert-model work moved to the **Hyperion** repository instead — it is an agent
-platform, not a market-model research programme.
+| `chmt-q/doc` | Specifications, architecture notes, audits, experiment protocols, and publications |
 
 ## Conventions
 
-- Frozen result sets that back a published claim are committed (for example FDT-N's BTC
-  profitability study and common-timeframe screen), so the numbers stay reproducible.
-- Checkpoints, raw datasets, and training runs are **not** committed; see `.gitignore`.
+- Frozen result sets that back a published claim are committed, so the numbers stay reproducible.
+- Raw datasets, checkpoints, and training runs are not committed; see `.gitignore`.
 - Each programme keeps its own README describing how to reproduce its results.
+- This is research code. Nothing here is a trading signal or investment advice.

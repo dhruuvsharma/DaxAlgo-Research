@@ -10,6 +10,8 @@ re-downloaded and re-encoded with the project's exact pipeline. Research-only.
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -22,9 +24,9 @@ from daxalgo_footprint_transformer.config import (
 )
 from daxalgo_footprint_transformer.model import FootprintDistributionTransformer
 
-VIS = Path(r"D:\Github\DaxAlgo-Research\fdt-n\visualizer")
-HEAVY = Path(r"C:\Users\dhruv\AppData\Local\Temp\opencode\visualizer-data")
-DOC = Path(r"D:\Github\DaxAlgo-Research\fdt-n\doc\model")
+VIS = Path(__file__).resolve().parent
+HEAVY = Path(os.environ.get("FDTN_VIS_DATA", Path(tempfile.gettempdir()) / "fdtn-visualizer-data"))
+DOC = Path(__file__).resolve().parent.parent / "doc" / "model"
 
 cfg = EncodingConfig()
 mcfg = ModelConfig()

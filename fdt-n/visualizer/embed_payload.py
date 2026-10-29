@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-VIS = Path(r"D:\Github\DaxAlgo-Research\fdt-n\visualizer")
+VIS = Path(__file__).resolve().parent
 html = (VIS / "dashboard.html").read_text(encoding="utf-8")
 payload = (VIS / "dashboard-data.json").read_text(encoding="utf-8")
 

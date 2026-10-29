@@ -28,8 +28,8 @@ import torch
 from daxalgo_footprint_transformer.config import EncodingConfig, ModelConfig
 from daxalgo_footprint_transformer.model import FootprintDistributionTransformer
 
-DOC = Path(r"D:\Github\DaxAlgo-Research\fdt-n\doc\model")
-OUT = Path(r"D:\Github\DaxAlgo-Research\fdt-n\visualizer")
+DOC = Path(__file__).resolve().parent.parent / "doc" / "model"
+OUT = Path(__file__).resolve().parent
 
 m_onnx = onnx.load(str(DOC / "fdt-n.onnx"))
 init = {t.name: numpy_helper.to_array(t) for t in m_onnx.graph.initializer}

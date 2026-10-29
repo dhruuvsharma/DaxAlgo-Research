@@ -2,9 +2,9 @@
 
 **Updated:** 2026-08-08 Europe/London
 
-**Repository:** `D:\Github\DaxAlgo Docs`
+**Repository:** DaxAlgo-Research (`chmt-q/doc`)
 
-**Remote:** `https://github.com/dhruuvsharma/DaxAlgo-Docs.git`
+**Remote:** `https://github.com/dhruuvsharma/DaxAlgo-Research.git`
 
 **Branch:** `main`
 
@@ -12,7 +12,7 @@
 
 ## User direction
 
-- Continue all CHMT-Q work only in the DaxAlgo Docs repository.
+- Continue all CHMT-Q work only in this repository.
 - Do not write, commit, or push CHMT-Q changes in `DaxAlgo-Terminal-Pro`.
 - Keep every publishable CHMT-Q document, figure, evidence summary, report, and context handoff in
   this folder.
@@ -195,4 +195,4 @@ file `~$om-first-principles.docx` was removed.
 4. Run `publication/verify_publication.py` after publication changes; render and inspect every DOCX
    and PDF page when layout changes.
 5. Keep claims bounded: one venue, one instrument, one month, one seed, one fold, four forward days.
-6. Commit and push only the DaxAlgo Docs repository when the user explicitly requests it.
+6. Commit and push only this repository when the user explicitly requests it.

@@ -17,6 +17,8 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import date
+import os
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -29,8 +31,8 @@ from daxalgo_footprint_transformer.data import (
     iter_binance_trades,
 )
 
-VIS = Path(r"D:\Github\DaxAlgo-Research\fdt-n\visualizer")
-HEAVY = Path(r"C:\Users\dhruv\AppData\Local\Temp\opencode\visualizer-data")
+VIS = Path(__file__).resolve().parent
+HEAVY = Path(os.environ.get("FDTN_VIS_DATA", Path(tempfile.gettempdir()) / "fdtn-visualizer-data"))
 HEAVY.mkdir(parents=True, exist_ok=True)
 RAW = HEAVY / "binance-raw"
 RAW.mkdir(parents=True, exist_ok=True)
@@ -113,9 +115,8 @@ print("OK ->", HEAVY / "test-series.npz", ",", HEAVY / "test-windows.npz")
 # The frozen parity fixture is the real window at context_end=14113 of the original
 # 14-day series (2024-01-01 00:00 start) => Jan 10 19:13 UTC. Its 8 realized future
 # bars lie inside Jan 10, so re-download Jan 10..11 and re-encode the same window.
-# Raw archives are staged on C: (temp) because D: is low on space; everything raw is
-# deleted after encoding.
-TMP_RAW = Path(r"C:\Users\dhruv\AppData\Local\Temp\opencode\binance-raw")
+# Raw archives are staged in the temp data directory; everything raw is deleted after encoding.
+TMP_RAW = HEAVY / "binance-raw-fixture"
 TMP_RAW.mkdir(parents=True, exist_ok=True)
 start2, end2 = date(2024, 1, 10), date(2024, 1, 11)
 print(f"downloading Binance BTCUSDT trades {start2} .. {end2} (fixture window) ...")

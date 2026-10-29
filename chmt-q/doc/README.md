@@ -1,19 +1,7 @@
 # CHMT-Q research workspace
 
-This is the single canonical folder for the CHMT-Q documentation corpus in the
-`DaxAlgo-Docs` repository. Start with the current publication package and
+This is the single canonical folder for the CHMT-Q documentation corpus. Start with the current publication package and
 [`SESSION-CONTEXT.md`](SESSION-CONTEXT.md).
-
-## Start a Codex session on Windows
-
-Double-click `start-chmtq-codex.bat`. The launcher safely sets this directory as the Codex working
-root, explicitly loads the local `funkeh` profile, and passes the entire context-loading request as
-one quoted argument. It inherits the profile's security and model configuration; it does not
-hardcode bypass flags.
-
-The launcher deliberately uses the normalized current directory instead of `%~dp0` for Codex's
-`-C` argument. `%~dp0` ends with a backslash, which can escape the closing quote when passed to a
-native executable and split the startup prompt into unexpected arguments.
 
 ## Current authoritative artifacts
 
