@@ -15,12 +15,20 @@ baseline.
 | **CHMT-Q**: Causal Hierarchical Market Transformer with Quantiles (failure analysis) | [PDF](chmt-q/doc/publication/chmtq-arxiv-manuscript.pdf) | [`chmtq-arxiv-manuscript.tex`](chmt-q/doc/publication/chmtq-arxiv-manuscript.tex) |
 | **CHMT-Q**: architecture and tensor mechanics | [PDF](chmt-q/doc/publication/chmtq-transformer-architecture-paper.pdf) | [`chmtq-transformer-architecture-source/`](chmt-q/doc/publication/chmtq-transformer-architecture-source/) |
 
+![FDT-N architecture, q50 error by horizon against persistence and ridge, and per-target coverage](docs/media/fdt-n-overview.png)
+
 ### FDT-N in one paragraph
 
 A 372K-parameter ragged-set transformer that reads every price row of an order-flow footprint bar
 and predicts direct multi-horizon quantiles. Across three seeds, with model selection on validation
 loss only, held-out q50 MAE was 7.25% better than persistence but 2.68% worse than a train-only
 ridge baseline, which won 55 of 56 horizon-target cells. It is reported as a negative result.
+
+![FDT-N replaying real BTCUSDT windows: forecast band against the realized outcome](docs/media/fdt-n-replay.gif)
+
+*The [offline visualizer](fdt-n/visualizer/) replaying the frozen model on real BTCUSDT windows.*
+
+![CHMT-Q architecture, forecast against actual, and modality-gate means during training](docs/media/chmt-q-overview.png)
 
 ### CHMT-Q in one paragraph
 
